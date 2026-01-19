@@ -3,9 +3,10 @@
 Professional IoT platform library for Arduino, ESP32, ESP8266 and compatible boards.  
 Connect your microcontrollers to **Vwire IOT** cloud platform via secure MQTT.
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/vwireiot/vwire-arduino)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/parvaizahmad/vwire)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![PlatformIO](https://img.shields.io/badge/PlatformIO-compatible-orange.svg)](https://platformio.org)
+
+🌐 **Cloud Portal**: [https://vwireiot.com](https://vwireiot.com)
 
 ---
 
@@ -39,21 +40,10 @@ Connect your microcontrollers to **Vwire IOT** cloud platform via secure MQTT.
 
 ### Arduino IDE
 
-1. Download this library as ZIP
+1. Download this library as ZIP from [GitHub](https://github.com/parvaizahmad/vwire)
 2. Go to **Sketch → Include Library → Add .ZIP Library**
 3. Select the downloaded ZIP file
-4. Install dependencies: `PubSubClient` and `ArduinoJson`
-
-### PlatformIO
-
-Add to your `platformio.ini`:
-
-```ini
-lib_deps =
-  vwireiot/VwireIOT@^3.0.0
-  knolleary/PubSubClient@^2.8
-  bblanchon/ArduinoJson@^6.21.0
-```
+4. Install dependencies: `PubSubClient` and `ArduinoJson` from Library Manager
 
 ---
 
@@ -133,26 +123,14 @@ void loop() {
 | **MQTTS (TLS)** | `VWIRE_TRANSPORT_TCP_SSL` | 8883 | ✅ Encrypted | ✅ **RECOMMENDED** |
 | MQTT (TCP) | `VWIRE_TRANSPORT_TCP` | 1883 | ❌ Plain | Local networks only |
 
-### Vwire IOT Cloud (Recommended)
+### Vwire IOT Cloud
 
 ```cpp
 Vwire.config(AUTH_TOKEN, "mqtt.vwireiot.com", 8883);
 Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
 ```
 
-### Self-Hosted Server
-
-```cpp
-Vwire.config(AUTH_TOKEN, "your-server.com", 8883);
-Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
-```
-
-### Local Development (No TLS)
-
-```cpp
-Vwire.config(AUTH_TOKEN, "192.168.1.100", 1883);
-Vwire.setTransport(VWIRE_TRANSPORT_TCP);
-```
+> 🌐 Sign up for free at [https://vwireiot.com](https://vwireiot.com) to get your AUTH_TOKEN
 
 ---
 
@@ -726,7 +704,6 @@ Handlers: 3
 | [05_Relay_Control](examples/05_Relay_Control) | Multi-relay control with buttons |
 | [07_RGB_LED_Strip](examples/07_RGB_LED_Strip) | NeoPixel/WS2812B with effects |
 | [08_Motor_Servo](examples/08_Motor_Servo) | DC motor and servo control |
-| [09_SelfHosted_Server](examples/09_SelfHosted_Server) | Connect to your own server |
 | [10_Minimal](examples/10_Minimal) | Simplest possible example |
 | [11_MQTTS_Secure](examples/11_MQTTS_Secure) | Secure TLS connection example |
 
@@ -792,9 +769,9 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🆘 Support
 
-- 📖 **Documentation**: https://docs.vwireiot.com/arduino
-- 🐛 **Issues**: https://github.com/vwireiot/vwire-arduino/issues
-- 💬 **Community**: https://community.vwireiot.com
+- 🌐 **Cloud Portal**: [https://vwireiot.com](https://vwireiot.com)
+- 📖 **Documentation**: [https://vwireiot.com/docs](https://vwireiot.com/docs)
+- 🐛 **Issues**: [https://github.com/parvaizahmad/vwire/issues](https://github.com/parvaizahmad/vwire/issues)
 - 📧 **Email**: support@vwireiot.com
 
 ---
