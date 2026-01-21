@@ -18,7 +18,7 @@ VwireClass Vwire;
 static VwireClass* _vwireInstance = nullptr;
 
 // =============================================================================
-// AUTO-REGISTRATION SYSTEM (Blynk-style)
+// AUTO-REGISTRATION SYSTEM
 // =============================================================================
 VwireAutoHandler _vwireAutoWriteHandlers[VWIRE_MAX_AUTO_HANDLERS];
 uint8_t _vwireAutoWriteCount = 0;

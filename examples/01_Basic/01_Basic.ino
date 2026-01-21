@@ -8,7 +8,7 @@
  * - Connecting to Vwire IOT platform via MQTTS (TLS)
  * - Sending sensor data to dashboard
  * - Receiving button press from dashboard
- * - LED control using Blynk-style VWIRE_WRITE()
+ * - LED control using VWIRE_WRITE()
  * 
  * Dashboard Setup:
  * - V0: Button widget (controls LED)
@@ -67,7 +67,7 @@ unsigned long lastSend = 0;
 const unsigned long SEND_INTERVAL = 2000;  // Send data every 2 seconds
 
 // =============================================================================
-// VIRTUAL PIN HANDLERS (Blynk-style auto-registration)
+// VIRTUAL PIN HANDLERS
 // =============================================================================
 
 // V0 - Button widget handler
@@ -81,7 +81,7 @@ VWIRE_WRITE(V0) {
 }
 
 // =============================================================================
-// CONNECTION HANDLERS (Blynk-style auto-registration)
+// CONNECTION HANDLERS 
 // =============================================================================
 
 VWIRE_CONNECTED() {

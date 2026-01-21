@@ -98,7 +98,7 @@ void saveSettings();
 void loadSettings();
 
 // =============================================================================
-// VIRTUAL PIN HANDLERS (Blynk-style auto-registration)
+// VIRTUAL PIN HANDLERS 
 // =============================================================================
 
 // V0 - LED On/Off button
@@ -195,7 +195,7 @@ void loadSettings() {
 }
 
 // =============================================================================
-// CONNECTION HANDLERS (Blynk-style auto-registration)
+// CONNECTION HANDLERS
 // =============================================================================
 
 VWIRE_CONNECTED() {

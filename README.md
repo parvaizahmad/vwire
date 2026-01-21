@@ -63,7 +63,7 @@ const char* AUTH_TOKEN = "YOUR_AUTH_TOKEN";
 const char* MQTT_SERVER = "mqtt.vwireiot.com";
 const uint16_t MQTT_PORT = 8883;  // TLS port (recommended)
 
-// ===== BLYNK-STYLE HANDLERS (auto-registered!) =====
+// ===== HANDLERS (auto-registered!) =====
 
 // Called when dashboard writes to V0 (e.g., button press)
 VWIRE_WRITE(V0) {
@@ -314,9 +314,9 @@ Vwire.syncAll();
 
 ---
 
-### Event Handlers (Blynk-Style Auto-Registration)
+### Event Handlers 
 
-The library supports **Blynk-style auto-registration** - handlers are automatically registered at startup using macros. No need to manually call `onVirtualWrite()` in setup()!
+The library supports **Auto-registration** - handlers are automatically registered at startup using macros. No need to manually call `onVirtualWrite()` in setup()!
 
 #### `VWIRE_WRITE(Vpin)` - Handle Virtual Pin Writes
 

@@ -167,7 +167,7 @@ void checkButtons() {
 }
 
 // =============================================================================
-// VIRTUAL PIN HANDLERS (Blynk-style auto-registration)
+// VIRTUAL PIN HANDLERS 
 // =============================================================================
 
 // Relay control handlers
@@ -192,7 +192,7 @@ VWIRE_WRITE(V5) {
 }
 
 // =============================================================================
-// CONNECTION HANDLERS (Blynk-style auto-registration)
+// CONNECTION HANDLERS 
 // =============================================================================
 
 VWIRE_CONNECTED() {

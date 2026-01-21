@@ -167,7 +167,7 @@ typedef void (*ConnectionHandler)();
 typedef void (*RawMessageHandler)(const char* topic, const char* payload);
 
 // =============================================================================
-// AUTO-REGISTRATION SYSTEM (Blynk-style)
+// AUTO-REGISTRATION SYSTEM
 // =============================================================================
 
 // Maximum auto-registered handlers
@@ -191,7 +191,7 @@ void _vwireRegisterConnectHandler(ConnectionHandler handler);
 void _vwireRegisterDisconnectHandler(ConnectionHandler handler);
 
 // =============================================================================
-// BLYNK-STYLE HANDLER MACROS
+// HANDLER MACROS
 // =============================================================================
 // Usage:
 //   VWIRE_WRITE(V0) {
@@ -243,7 +243,10 @@ void _vwireRegisterDisconnectHandler(ConnectionHandler handler);
   } _VWIRE_UNIQUE(_vwireDisconnectRegInstance_, __LINE__); \
   void _vwire_disconnected_handler()
 
-// Virtual pin number definitions (V0-V31)
+// Virtual pin number definitions (V0-V31 for convenience)
+// NOTE: Pins 0-255 are supported. For pins beyond V31, use the number directly:
+//       Vwire.virtualWrite(100, value);  // Pin 100
+//       Vwire.virtualWrite(255, value);  // Pin 255
 #define V0  0
 #define V1  1
 #define V2  2

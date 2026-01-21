@@ -131,7 +131,7 @@ void updateLED() {
 }
 
 // =============================================================================
-// VIRTUAL PIN HANDLERS (Blynk-style auto-registration)
+// VIRTUAL PIN HANDLERS
 // =============================================================================
 
 VWIRE_WRITE(V0) {
@@ -177,7 +177,7 @@ void sendSensorData() {
 }
 
 // =============================================================================
-// CONNECTION HANDLERS (Blynk-style auto-registration)
+// CONNECTION HANDLERS
 // =============================================================================
 
 VWIRE_CONNECTED() {
