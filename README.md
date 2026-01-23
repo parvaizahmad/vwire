@@ -60,7 +60,7 @@ const char* WIFI_PASS = "YOUR_PASSWORD";
 const char* AUTH_TOKEN = "YOUR_AUTH_TOKEN";
 
 // MQTT Broker Configuration (Vwire Cloud)
-const char* MQTT_SERVER = "mqtt.vwireiot.com";
+const char* MQTT_SERVER = "mqtt.vwire.io";
 const uint16_t MQTT_PORT = 8883;  // TLS port (recommended)
 
 // ===== HANDLERS (auto-registered!) =====
@@ -126,7 +126,7 @@ void loop() {
 ### Vwire IOT Cloud
 
 ```cpp
-Vwire.config(AUTH_TOKEN, "mqtt.vwireiot.com", 8883);
+Vwire.config(AUTH_TOKEN, "mqtt.vwire.io", 8883);
 Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
 ```
 
@@ -139,7 +139,7 @@ Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
 ### Configuration Functions
 
 #### `Vwire.config(authToken)`
-Configure with default server (mqtt.vwireiot.com:8883).
+Configure with default server (mqtt.vwire.io:8883).
 
 ```cpp
 Vwire.config("your-auth-token-here");
@@ -149,7 +149,7 @@ Vwire.config("your-auth-token-here");
 Configure with custom MQTT server.
 
 ```cpp
-Vwire.config("your-token", "mqtt.vwireiot.com", 8883);
+Vwire.config("your-token", "mqtt.vwire.io", 8883);
 ```
 
 #### `Vwire.config(settings)`
@@ -158,7 +158,7 @@ Configure with full settings structure.
 ```cpp
 VwireSettings settings;
 strncpy(settings.authToken, "your-token", VWIRE_MAX_TOKEN_LENGTH);
-strncpy(settings.server, "mqtt.vwireiot.com", VWIRE_MAX_SERVER_LENGTH);
+strncpy(settings.server, "mqtt.vwire.io", VWIRE_MAX_SERVER_LENGTH);
 settings.port = 8883;
 settings.transport = VWIRE_TRANSPORT_TCP_SSL;
 settings.autoReconnect = true;
@@ -680,7 +680,7 @@ Vwire.printDebugInfo();
 Version: 3.0.0
 Board: ESP32
 Device ID: abc12345-6789-0abc-def0-123456789abc
-Server: mqtt.vwireiot.com:8883
+Server: mqtt.vwire.io:8883
 Transport: TLS
 State: 3
 WiFi RSSI: -45 dBm

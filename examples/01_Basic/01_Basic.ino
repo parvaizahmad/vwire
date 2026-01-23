@@ -43,7 +43,7 @@ const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 // MQTT BROKER CONFIGURATION
 // =============================================================================
 // For Vwire IOT Cloud (default), use these settings:
-const char* MQTT_SERVER   = "mqtt.vwireiot.com";
+const char* MQTT_SERVER   = "mqtt.vwire.io";
 const uint16_t MQTT_PORT  = 8883;  // TLS port (RECOMMENDED)
 
 // Transport protocol options:

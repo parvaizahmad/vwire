@@ -53,7 +53,7 @@ const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 // For Vwire IOT Cloud (default), leave these as-is
 // For self-hosted server, update with your server details
 
-const char* MQTT_BROKER   = "mqtt.vwireiot.com";  // MQTT broker hostname or IP address
+const char* MQTT_BROKER   = "mqtt.vwire.io";  // MQTT broker hostname or IP address
 const uint16_t MQTT_PORT  = 8883;                 // MQTT port (8883=TLS recommended, 1883=plain TCP)
 
 // Transport protocol options:

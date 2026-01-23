@@ -29,7 +29,7 @@
 #define WIFI_SSID     "your_wifi_ssid"
 #define WIFI_PASSWORD "your_wifi_password"
 #define AUTH_TOKEN    "your_device_auth_token"
-#define SERVER        "mqtt.vwireiot.com"
+#define SERVER        "mqtt.vwire.io"
 
 // Transport: VWIRE_TRANSPORT_TCP_SSL (port 8883) - TLS encrypted ✅ RECOMMENDED
 #define TRANSPORT     VWIRE_TRANSPORT_TCP_SSL

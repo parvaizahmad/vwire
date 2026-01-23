@@ -19,7 +19,7 @@ void setup() {
   Serial.begin(115200);
   
   // Configure and connect (uses default Vwire server with TLS)
-  Vwire.config(AUTH_TOKEN, "mqtt.vwireiot.com", 8883);
+  Vwire.config(AUTH_TOKEN, "mqtt.vwire.io", 8883);
   Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
   Vwire.begin(WIFI_SSID, WIFI_PASS);
 }

@@ -73,7 +73,7 @@
 // =============================================================================
 // DEFAULT SERVER CONFIGURATION
 // =============================================================================
-#define VWIRE_DEFAULT_SERVER "mqtt.vwireiot.com"
+#define VWIRE_DEFAULT_SERVER "mqtt.vwire.io"
 #define VWIRE_DEFAULT_PORT_TCP 1883
 #define VWIRE_DEFAULT_PORT_TLS 8883
 

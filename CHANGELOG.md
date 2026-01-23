@@ -16,7 +16,7 @@ This is a major release with significant changes including a complete rebrand fr
 - **Header file renamed**: `IoTech.h` → `Vwire.h`
 - **Global instance renamed**: `IoTech` → `Vwire`
 - **WebSocket support removed**: Use MQTTS (TLS) instead for secure connections
-- **Default server changed**: `mqtt.iotech.io` → `mqtt.vwireiot.com`
+- **Default server changed**: `mqtt.vwireiot.com` → `mqtt.vwire.io`
 - **Default transport changed**: Now defaults to TLS on port 8883
 
 ### Added
