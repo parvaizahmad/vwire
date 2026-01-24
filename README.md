@@ -3,7 +3,7 @@
 Professional IoT platform library for Arduino, ESP32, ESP8266 and compatible boards.  
 Connect your microcontrollers to **Vwire IOT** cloud platform via secure MQTT.
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/parvaizahmad/vwire)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](https://github.com/parvaizahmad/vwire)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 🌐 **Cloud Portal**: [https://vwireiot.com](https://vwireiot.com)
@@ -19,6 +19,7 @@ Connect your microcontrollers to **Vwire IOT** cloud platform via secure MQTT.
 - 🔄 **OTA Updates**: Over-the-air firmware updates (ESP32/ESP8266)
 - ⚡ **Auto Reconnect**: Automatic connection recovery with configurable intervals
 - 🎯 **Multi-Platform**: ESP32, ESP8266, RP2040, SAMD, and more
+- ✅ **Reliable Delivery**: Optional application-level ACK for guaranteed message delivery
 
 ---
 
@@ -197,6 +198,154 @@ Set heartbeat interval (default: 30000ms).
 
 ```cpp
 Vwire.setHeartbeatInterval(60000);  // Heartbeat every 60 seconds
+```
+
+---
+
+### Reliable Delivery (Application-Level ACK)
+
+Enable guaranteed message delivery for critical data. When enabled, the server acknowledges each message, and the device automatically retries if no ACK is received.
+
+#### When to Use Reliable Delivery
+
+| Use Case | Reliable Delivery | Reason |
+|----------|:-----------------:|--------|
+| **Energy Metering** | ✅ Yes | Every reading matters for billing |
+| **Event Logging** | ✅ Yes | Button presses, alerts must not be lost |
+| **Infrequent Sensors** | ✅ Yes | Daily readings are valuable |
+| **High-Frequency Telemetry** | ❌ No | Missing one of 1000 readings is OK |
+| **Real-time Streaming** | ❌ No | Fresh data matters more than completeness |
+
+#### `Vwire.setReliableDelivery(enable)`
+Enable or disable reliable delivery (default: disabled for backward compatibility).
+
+```cpp
+Vwire.setReliableDelivery(true);   // Enable ACK-based delivery
+Vwire.setReliableDelivery(false);  // Standard fire-and-forget (default)
+```
+
+#### `Vwire.setAckTimeout(milliseconds)`
+Set how long to wait for server ACK before retry (default: 5000ms).
+
+```cpp
+Vwire.setAckTimeout(3000);  // 3 second timeout
+```
+
+#### `Vwire.setMaxRetries(count)`
+Set maximum retry attempts before dropping message (default: 3).
+
+```cpp
+Vwire.setMaxRetries(5);  // Try up to 5 times
+```
+
+#### `Vwire.onDeliveryStatus(callback)`
+Register callback for delivery success/failure notifications.
+
+```cpp
+void onDelivery(const char* msgId, bool success) {
+  if (success) {
+    Serial.printf("✓ Message %s delivered\n", msgId);
+  } else {
+    Serial.printf("✗ Message %s failed\n", msgId);
+    // Optionally: store to flash for later retry
+  }
+}
+
+void setup() {
+  Vwire.setReliableDelivery(true);
+  Vwire.onDeliveryStatus(onDelivery);
+  // ...
+}
+```
+
+#### `Vwire.getPendingCount()`
+Get the number of messages waiting for acknowledgment.
+
+```cpp
+uint8_t pending = Vwire.getPendingCount();
+Serial.printf("Pending messages: %d\n", pending);
+```
+
+#### `Vwire.isDeliveryPending()`
+Check if any messages are awaiting acknowledgment.
+
+```cpp
+if (Vwire.isDeliveryPending()) {
+  Serial.println("Waiting for server confirmation...");
+}
+```
+
+#### Complete Reliable Delivery Example
+
+```cpp
+#include <Vwire.h>
+
+const char* WIFI_SSID = "YOUR_WIFI";
+const char* WIFI_PASS = "YOUR_PASSWORD";
+const char* AUTH_TOKEN = "YOUR_AUTH_TOKEN";
+
+// Track delivery statistics
+unsigned long successCount = 0;
+unsigned long failCount = 0;
+
+void onDeliveryResult(const char* msgId, bool success) {
+  if (success) {
+    successCount++;
+    Serial.printf("✓ [%s] Delivered (total: %lu)\n", msgId, successCount);
+  } else {
+    failCount++;
+    Serial.printf("✗ [%s] Failed (total: %lu)\n", msgId, failCount);
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Configure Vwire
+  Vwire.config(AUTH_TOKEN, "mqtt.vwire.io", 8883);
+  Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
+  Vwire.setDebug(true);
+  
+  // Enable reliable delivery
+  Vwire.setReliableDelivery(true);
+  Vwire.setAckTimeout(5000);    // 5 second timeout
+  Vwire.setMaxRetries(3);       // 3 retry attempts
+  Vwire.onDeliveryStatus(onDeliveryResult);
+  
+  // Connect
+  Vwire.begin(WIFI_SSID, WIFI_PASS);
+}
+
+void loop() {
+  Vwire.run();
+  
+  // Send energy meter reading every minute (must not be lost!)
+  static unsigned long lastSend = 0;
+  if (Vwire.connected() && millis() - lastSend > 60000) {
+    lastSend = millis();
+    
+    float kWh = readEnergyMeter();
+    Vwire.virtualWrite(V0, kWh);  // Automatically uses reliable delivery
+    
+    Serial.printf("Sent: %.2f kWh (pending: %d)\n", kWh, Vwire.getPendingCount());
+  }
+}
+```
+
+#### Memory Considerations
+
+Reliable delivery uses additional memory for the pending message queue:
+
+| Setting | Value | Memory Impact |
+|---------|-------|---------------|
+| Max pending messages | 10 | ~800 bytes |
+| Message ID length | 15 chars | Included above |
+| Value buffer | 64 chars | Per message |
+
+For memory-constrained devices (ESP8266), monitor free heap:
+
+```cpp
+Serial.printf("Free heap: %u bytes\n", Vwire.getFreeHeap());
 ```
 
 ---

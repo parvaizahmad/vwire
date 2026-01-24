@@ -57,12 +57,15 @@ VwireClass::VwireClass()
   , _connectHandler(nullptr)
   , _disconnectHandler(nullptr)
   , _messageHandler(nullptr)
+  , _deliveryCallback(nullptr)
+  , _msgIdCounter(0)
   #if VWIRE_HAS_OTA
   , _otaEnabled(false)
   #endif
 {
   memset(_deviceId, 0, sizeof(_deviceId));
   memset(_pinHandlers, 0, sizeof(_pinHandlers));
+  memset(_pendingMessages, 0, sizeof(_pendingMessages));
   _vwireInstance = this;
 }
 
@@ -132,6 +135,23 @@ void VwireClass::setDataQoS(uint8_t qos) {
 
 void VwireClass::setDataRetain(bool retain) {
   _settings.dataRetain = retain;
+}
+
+void VwireClass::setReliableDelivery(bool enable) {
+  _settings.reliableDelivery = enable;
+  _debugPrintf("[Vwire] Reliable delivery: %s", enable ? "ENABLED" : "DISABLED");
+}
+
+void VwireClass::setAckTimeout(unsigned long timeout) {
+  _settings.ackTimeout = timeout;
+}
+
+void VwireClass::setMaxRetries(uint8_t retries) {
+  _settings.maxRetries = retries;
+}
+
+void VwireClass::onDeliveryStatus(DeliveryCallback cb) {
+  _deliveryCallback = cb;
 }
 
 // =============================================================================
@@ -232,6 +252,13 @@ bool VwireClass::_connectMQTT() {
     _mqttClient.subscribe(cmdTopic.c_str(), 1);  // QoS 1 - commands are delivered at least once
     _debugPrintf("[Vwire] Subscribed to: %s (QoS 1)", cmdTopic.c_str());
     
+    // Subscribe to ACK topic for reliable delivery (if enabled)
+    if (_settings.reliableDelivery) {
+      String ackTopic = _buildTopic("ack");
+      _mqttClient.subscribe(ackTopic.c_str(), 1);
+      _debugPrintf("[Vwire] Subscribed to: %s (ACK)", ackTopic.c_str());
+    }
+    
     _startTime = millis();
     
     // Call connect handler (manual registration first, then auto-registered)
@@ -282,6 +309,11 @@ void VwireClass::run() {
   // Process MQTT messages FIRST - critical for low latency command reception
   if (_mqttClient.connected()) {
     _mqttClient.loop();
+    
+    // Process reliable delivery retries (if enabled)
+    if (_settings.reliableDelivery) {
+      _processRetries();
+    }
     
     // Send heartbeat (only when connected)
     unsigned long now = millis();
@@ -377,6 +409,30 @@ void VwireClass::_handleMessage(char* topic, byte* payload, unsigned int length)
     _messageHandler(topic, payloadStr);
   }
   
+  // Check for ACK topic first: vwire/{deviceId}/ack
+  char* ackPos = strstr(topic, "/ack");
+  if (ackPos && *(ackPos + 4) == '\0') {
+    // This is an ACK message - parse JSON: {"msgId":"xxx","ok":true/false}
+    // Simple parse without ArduinoJson to save memory
+    char* msgIdStart = strstr(payloadStr, "\"msgId\":\"");
+    char* okStart = strstr(payloadStr, "\"ok\":");
+    
+    if (msgIdStart && okStart) {
+      msgIdStart += 9;  // Skip to value
+      char* msgIdEnd = strchr(msgIdStart, '\"');
+      if (msgIdEnd) {
+        char msgId[16];
+        int len = min((int)(msgIdEnd - msgIdStart), 15);
+        strncpy(msgId, msgIdStart, len);
+        msgId[len] = '\0';
+        
+        bool success = (strstr(okStart, "true") != nullptr);
+        _handleAck(msgId, success);
+      }
+    }
+    return;  // ACK processed, don't continue as command
+  }
+  
   // Fast parse: find "/cmd/" in topic using strstr (no heap allocation)
   char* cmdPos = strstr(topic, "/cmd/");
   if (!cmdPos) return;  // Not a command topic
@@ -429,6 +485,13 @@ void VwireClass::_virtualWriteInternal(uint8_t pin, const String& value) {
     return;
   }
   
+  // Use reliable delivery if enabled
+  if (_settings.reliableDelivery) {
+    _sendWithReliableDelivery(pin, value);
+    return;
+  }
+  
+  // Standard fire-and-forget delivery
   // Use stack-allocated buffer for topic (avoid heap allocation)
   char topic[96];
   snprintf(topic, sizeof(topic), "vwire/%s/pin/V%d", _deviceId, pin);
@@ -684,5 +747,157 @@ void VwireClass::printDebugInfo() {
   _debugStream->print(F("Free Heap: ")); _debugStream->print(getFreeHeap()); _debugStream->println(F(" bytes"));
   _debugStream->print(F("Uptime: ")); _debugStream->print(getUptime()); _debugStream->println(F(" sec"));
   _debugStream->print(F("Handlers: ")); _debugStream->println(_pinHandlerCount);
+  _debugStream->print(F("Reliable Delivery: ")); _debugStream->println(_settings.reliableDelivery ? "ENABLED" : "DISABLED");
+  if (_settings.reliableDelivery) {
+    _debugStream->print(F("Pending Messages: ")); _debugStream->println(getPendingCount());
+  }
   _debugStream->println(F("============================\n"));
 }
+
+// =============================================================================
+// RELIABLE DELIVERY
+// =============================================================================
+uint8_t VwireClass::getPendingCount() {
+  uint8_t count = 0;
+  for (int i = 0; i < VWIRE_MAX_PENDING_MESSAGES; i++) {
+    if (_pendingMessages[i].active) count++;
+  }
+  return count;
+}
+
+bool VwireClass::isDeliveryPending() {
+  return getPendingCount() > 0;
+}
+
+int VwireClass::_findPendingSlot() {
+  for (int i = 0; i < VWIRE_MAX_PENDING_MESSAGES; i++) {
+    if (!_pendingMessages[i].active) return i;
+  }
+  return -1;  // Queue full
+}
+
+void VwireClass::_removePending(const char* msgId) {
+  for (int i = 0; i < VWIRE_MAX_PENDING_MESSAGES; i++) {
+    if (_pendingMessages[i].active && strcmp(_pendingMessages[i].msgId, msgId) == 0) {
+      _pendingMessages[i].active = false;
+      _debugPrintf("[Vwire] Removed pending message: %s", msgId);
+      return;
+    }
+  }
+}
+
+void VwireClass::_handleAck(const char* msgId, bool success) {
+  _debugPrintf("[Vwire] ACK received: %s = %s", msgId, success ? "OK" : "FAIL");
+  
+  // Find the pending message
+  for (int i = 0; i < VWIRE_MAX_PENDING_MESSAGES; i++) {
+    if (_pendingMessages[i].active && strcmp(_pendingMessages[i].msgId, msgId) == 0) {
+      _pendingMessages[i].active = false;
+      
+      // Call delivery callback if set
+      if (_deliveryCallback) {
+        _deliveryCallback(msgId, success);
+      }
+      
+      if (success) {
+        _debugPrintf("[Vwire] ✓ Message %s delivered successfully", msgId);
+      } else {
+        _debugPrintf("[Vwire] ✗ Message %s delivery failed (server NACK)", msgId);
+      }
+      return;
+    }
+  }
+  
+  // Message not found in pending queue (might be duplicate ACK)
+  _debugPrintf("[Vwire] ACK for unknown message: %s (possibly duplicate)", msgId);
+}
+
+void VwireClass::_sendWithReliableDelivery(uint8_t pin, const String& value) {
+  // Find empty slot in pending queue
+  int slot = _findPendingSlot();
+  if (slot < 0) {
+    _setError(VWIRE_ERR_QUEUE_FULL);
+    _debugPrint("[Vwire] Error: Reliable delivery queue full!");
+    
+    // Notify callback of failure
+    if (_deliveryCallback) {
+      _deliveryCallback("queue_full", false);
+    }
+    return;
+  }
+  
+  // Generate unique message ID: deviceId_counter_millis
+  _msgIdCounter++;
+  snprintf(_pendingMessages[slot].msgId, sizeof(_pendingMessages[slot].msgId),
+           "%04X_%lu", (uint16_t)(_msgIdCounter & 0xFFFF), millis() % 10000);
+  
+  _pendingMessages[slot].pin = pin;
+  strncpy(_pendingMessages[slot].value, value.c_str(), sizeof(_pendingMessages[slot].value) - 1);
+  _pendingMessages[slot].value[sizeof(_pendingMessages[slot].value) - 1] = '\0';
+  _pendingMessages[slot].sentAt = millis();
+  _pendingMessages[slot].retries = 0;
+  _pendingMessages[slot].active = true;
+  
+  // Build payload with msgId: {"msgId":"xxx","pin":"V0","value":"123"}
+  char payload[VWIRE_JSON_BUFFER_SIZE];
+  snprintf(payload, sizeof(payload), 
+           "{\"msgId\":\"%s\",\"pin\":\"V%d\",\"value\":\"%s\"}",
+           _pendingMessages[slot].msgId, pin, _pendingMessages[slot].value);
+  
+  // Use /data topic for reliable messages (server will ACK these)
+  char topic[96];
+  snprintf(topic, sizeof(topic), "vwire/%s/data", _deviceId);
+  
+  unsigned int len = strlen(payload);
+  _mqttClient.beginPublish(topic, len, false);
+  _mqttClient.print(payload);
+  _mqttClient.endPublish();
+  
+  _debugPrintf("[Vwire] Reliable write V%d = %s (msgId: %s)", 
+               pin, value.c_str(), _pendingMessages[slot].msgId);
+}
+
+void VwireClass::_processRetries() {
+  unsigned long now = millis();
+  
+  for (int i = 0; i < VWIRE_MAX_PENDING_MESSAGES; i++) {
+    if (!_pendingMessages[i].active) continue;
+    
+    // Check if ACK timeout has passed
+    if (now - _pendingMessages[i].sentAt >= _settings.ackTimeout) {
+      if (_pendingMessages[i].retries < _settings.maxRetries) {
+        // Retry
+        _pendingMessages[i].retries++;
+        _pendingMessages[i].sentAt = now;
+        
+        // Rebuild and resend payload
+        char payload[VWIRE_JSON_BUFFER_SIZE];
+        snprintf(payload, sizeof(payload), 
+                 "{\"msgId\":\"%s\",\"pin\":\"V%d\",\"value\":\"%s\"}",
+                 _pendingMessages[i].msgId, _pendingMessages[i].pin, _pendingMessages[i].value);
+        
+        char topic[96];
+        snprintf(topic, sizeof(topic), "vwire/%s/data", _deviceId);
+        
+        unsigned int len = strlen(payload);
+        _mqttClient.beginPublish(topic, len, false);
+        _mqttClient.print(payload);
+        _mqttClient.endPublish();
+        
+        _debugPrintf("[Vwire] ↻ Retry %d/%d for message %s", 
+                     _pendingMessages[i].retries, _settings.maxRetries,
+                     _pendingMessages[i].msgId);
+      } else {
+        // Max retries exceeded - give up
+        _debugPrintf("[Vwire] ✗ Message %s dropped after %d retries", 
+                     _pendingMessages[i].msgId, _settings.maxRetries);
+        
+        // Call delivery callback with failure
+        if (_deliveryCallback) {
+          _deliveryCallback(_pendingMessages[i].msgId, false);
+        }
+        
+        _pendingMessages[i].active = false;
+      }
+    }
+  }

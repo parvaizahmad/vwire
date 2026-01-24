@@ -144,6 +144,11 @@ struct VwireSettings {
   uint8_t dataQoS;        // Note: PubSubClient only supports QoS 0 (kept for future use)
   bool dataRetain;        // Retain flag for data writes
   
+  // Reliable Delivery Settings
+  bool reliableDelivery;          // Enable application-level acknowledgments
+  unsigned long ackTimeout;       // Time to wait for ACK before retry (ms)
+  uint8_t maxRetries;             // Max retry attempts before dropping message
+  
   VwireSettings() {
     memset(authToken, 0, sizeof(authToken));
     strncpy(server, VWIRE_DEFAULT_SERVER, VWIRE_MAX_SERVER_LENGTH - 1);
@@ -156,6 +161,11 @@ struct VwireSettings {
     heartbeatInterval = VWIRE_DEFAULT_HEARTBEAT_INTERVAL;
     wifiTimeout = VWIRE_DEFAULT_WIFI_TIMEOUT;
     mqttTimeout = VWIRE_DEFAULT_MQTT_TIMEOUT;
+    
+    // Reliable Delivery defaults (disabled by default for backward compatibility)
+    reliableDelivery = false;
+    ackTimeout = VWIRE_DEFAULT_ACK_TIMEOUT;
+    maxRetries = VWIRE_DEFAULT_MAX_RETRIES;
   }
 };
 
@@ -165,6 +175,10 @@ struct VwireSettings {
 typedef void (*PinHandler)(VirtualPin&);
 typedef void (*ConnectionHandler)();
 typedef void (*RawMessageHandler)(const char* topic, const char* payload);
+
+// Reliable delivery callback: called when message delivery status is known
+// msgId: unique message identifier, success: true if ACKed, false if dropped after retries
+typedef void (*DeliveryCallback)(const char* msgId, bool success);
 
 // =============================================================================
 // AUTO-REGISTRATION SYSTEM
@@ -299,6 +313,12 @@ public:
   void setDataQoS(uint8_t qos);      // Note: PubSubClient only supports QoS 0
   void setDataRetain(bool retain);   // false=faster (default), true=retained
   
+  // Reliable Delivery Configuration
+  void setReliableDelivery(bool enable);        // Enable/disable ACK-based delivery
+  void setAckTimeout(unsigned long timeout);    // Time to wait for ACK (default: 5000ms)
+  void setMaxRetries(uint8_t retries);          // Max retry attempts (default: 3)
+  void onDeliveryStatus(DeliveryCallback cb);   // Callback for delivery success/failure
+  
   // Connection
   bool begin(const char* ssid, const char* password);
   bool begin();  // Use pre-configured WiFi
@@ -345,6 +365,10 @@ public:
   void notify(const char* message);
   void email(const char* subject, const char* body);
   void log(const char* message);
+  
+  // Reliable Delivery Status
+  uint8_t getPendingCount();     // Number of unacknowledged messages
+  bool isDeliveryPending();      // True if any messages awaiting ACK
   
   // Device Info
   const char* getDeviceId();
@@ -403,6 +427,19 @@ private:
   bool _otaEnabled;
   #endif
   
+  // Reliable Delivery
+  struct PendingMessage {
+    char msgId[16];         // Unique message ID
+    uint8_t pin;            // Pin number
+    char value[64];         // Value (truncated if longer)
+    unsigned long sentAt;   // Time when last sent
+    uint8_t retries;        // Number of retry attempts
+    bool active;            // Slot in use
+  };
+  PendingMessage _pendingMessages[VWIRE_MAX_PENDING_MESSAGES];
+  DeliveryCallback _deliveryCallback;
+  uint32_t _msgIdCounter;   // For generating unique message IDs
+  
   // Internal methods
   bool _connectWiFi(const char* ssid, const char* password);
   bool _connectMQTT();
@@ -415,6 +452,13 @@ private:
   void _setError(VwireError error);
   void _debugPrint(const char* message);
   void _debugPrintf(const char* format, ...);
+  
+  // Reliable Delivery internal methods
+  void _processRetries();           // Check and retry pending messages
+  void _handleAck(const char* msgId, bool success);  // Process ACK from server
+  int _findPendingSlot();           // Find empty slot in pending queue
+  void _removePending(const char* msgId);  // Remove message from queue
+  void _sendWithReliableDelivery(uint8_t pin, const String& value);  // Send with ACK tracking
 };
 
 // =============================================================================

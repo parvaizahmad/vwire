@@ -14,7 +14,7 @@
 // =============================================================================
 // VERSION
 // =============================================================================
-#define VWIRE_VERSION "3.0.0"
+#define VWIRE_VERSION "3.1.0"
 
 // =============================================================================
 // BOARD DETECTION
@@ -102,6 +102,13 @@ typedef enum {
 #define VWIRE_DEFAULT_MQTT_TIMEOUT 10000          // 10 seconds
 
 // =============================================================================
+// RELIABLE DELIVERY CONFIGURATION
+// =============================================================================
+#define VWIRE_DEFAULT_ACK_TIMEOUT 5000            // 5 seconds to wait for ACK
+#define VWIRE_DEFAULT_MAX_RETRIES 3               // Number of retry attempts
+#define VWIRE_MAX_PENDING_MESSAGES 10             // Max queued messages (memory constraint)
+
+// =============================================================================
 // CONNECTION STATES
 // =============================================================================
 typedef enum {
@@ -126,7 +133,8 @@ typedef enum {
   VWIRE_ERR_BUFFER_FULL,
   VWIRE_ERR_HANDLER_FULL,
   VWIRE_ERR_TIMEOUT,
-  VWIRE_ERR_SSL_FAILED
+  VWIRE_ERR_SSL_FAILED,
+  VWIRE_ERR_QUEUE_FULL       // Reliable delivery queue is full
 } VwireError;
 
 #endif // VWIRE_CONFIG_H
