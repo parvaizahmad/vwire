@@ -227,10 +227,10 @@ bool VwireClass::_connectMQTT() {
     _mqttClient.print("{\"status\":\"online\"}");
     _mqttClient.endPublish();
     
-    // Subscribe to command topics
+    // Subscribe to command topics with QoS 1 for reliable command delivery
     String cmdTopic = _buildTopic("cmd") + "/#";
-    _mqttClient.subscribe(cmdTopic.c_str());
-    _debugPrintf("[Vwire] Subscribed to: %s", cmdTopic.c_str());
+    _mqttClient.subscribe(cmdTopic.c_str(), 1);  // QoS 1 - commands are delivered at least once
+    _debugPrintf("[Vwire] Subscribed to: %s (QoS 1)", cmdTopic.c_str());
     
     _startTime = millis();
     
