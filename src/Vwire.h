@@ -141,7 +141,7 @@ struct VwireSettings {
   unsigned long heartbeatInterval;
   unsigned long wifiTimeout;
   unsigned long mqttTimeout;
-  uint8_t dataQoS;        // QoS for data writes (0=fastest, 1=reliable)
+  uint8_t dataQoS;        // Note: PubSubClient only supports QoS 0 (kept for future use)
   bool dataRetain;        // Retain flag for data writes
   
   VwireSettings() {
@@ -150,7 +150,7 @@ struct VwireSettings {
     port = VWIRE_DEFAULT_PORT_TLS;  // Default to secure port
     transport = VWIRE_TRANSPORT_TCP_SSL;  // Default to TLS
     autoReconnect = true;
-    dataQoS = 1;           // Default QoS 1 for reliability
+    dataQoS = 0;           // PubSubClient only supports QoS 0
     dataRetain = false;    // Don't retain by default (faster)
     reconnectInterval = VWIRE_DEFAULT_RECONNECT_INTERVAL;
     heartbeatInterval = VWIRE_DEFAULT_HEARTBEAT_INTERVAL;
@@ -296,7 +296,7 @@ public:
   void setAutoReconnect(bool enable);
   void setReconnectInterval(unsigned long interval);
   void setHeartbeatInterval(unsigned long interval);
-  void setDataQoS(uint8_t qos);      // 0=fastest (fire&forget), 1=reliable (default)
+  void setDataQoS(uint8_t qos);      // Note: PubSubClient only supports QoS 0
   void setDataRetain(bool retain);   // false=faster (default), true=retained
   
   // Connection

@@ -125,7 +125,9 @@ void VwireClass::setHeartbeatInterval(unsigned long interval) {
 }
 
 void VwireClass::setDataQoS(uint8_t qos) {
-  _settings.dataQoS = (qos > 1) ? 1 : qos;  // Clamp to 0 or 1
+  // Note: PubSubClient library only supports QoS 0
+  // This setting is kept for future compatibility if we switch to a different MQTT library
+  _settings.dataQoS = (qos > 1) ? 1 : qos;
 }
 
 void VwireClass::setDataRetain(bool retain) {
@@ -220,14 +222,14 @@ bool VwireClass::_connectMQTT() {
     _state = VWIRE_STATE_CONNECTED;
     _debugPrint("[Vwire] MQTT connected!");
     
-    // Publish online status with QoS 1 for reliability
-    _mqttClient.beginPublish(willTopic.c_str(), 19, true, 1);  // retained=true, qos=1
+    // Publish online status (retained so server knows device is online)
+    _mqttClient.beginPublish(willTopic.c_str(), 19, true);  // retained=true
     _mqttClient.print("{\"status\":\"online\"}");
     _mqttClient.endPublish();
     
-    // Subscribe to command topics with QoS 1
+    // Subscribe to command topics
     String cmdTopic = _buildTopic("cmd") + "/#";
-    _mqttClient.subscribe(cmdTopic.c_str(), 1);  // QoS 1
+    _mqttClient.subscribe(cmdTopic.c_str());
     _debugPrintf("[Vwire] Subscribed to: %s", cmdTopic.c_str());
     
     _startTime = millis();
@@ -337,10 +339,10 @@ bool VwireClass::connected() {
 
 void VwireClass::disconnect() {
   if (_mqttClient.connected()) {
-    // Publish offline status with QoS 1 for reliability
+    // Publish offline status (retained so server knows device went offline)
     char topic[96];
     snprintf(topic, sizeof(topic), "vwire/%s/status", _deviceId);
-    _mqttClient.beginPublish(topic, 20, true, 1);  // retained=true, qos=1
+    _mqttClient.beginPublish(topic, 20, true);  // retained=true
     _mqttClient.print("{\"status\":\"offline\"}");
     _mqttClient.endPublish();
     _mqttClient.disconnect();
@@ -431,13 +433,13 @@ void VwireClass::_virtualWriteInternal(uint8_t pin, const String& value) {
   char topic[96];
   snprintf(topic, sizeof(topic), "vwire/%s/pin/V%d", _deviceId, pin);
   
-  // Publish with QoS 1 for reliable delivery (guaranteed at least once)
+  // Publish data to server
   const char* payload = value.c_str();
   unsigned int len = strlen(payload);
-  _mqttClient.beginPublish(topic, len, _settings.dataRetain, _settings.dataQoS);
+  _mqttClient.beginPublish(topic, len, _settings.dataRetain);
   _mqttClient.print(payload);
   _mqttClient.endPublish();
-  _debugPrintf("[Vwire] Write V%d = %s (QoS %d)", pin, value.c_str(), _settings.dataQoS);
+  _debugPrintf("[Vwire] Write V%d = %s", pin, value.c_str());
 }
 
 void VwireClass::virtualWriteArray(uint8_t pin, float* values, int count) {
@@ -472,7 +474,7 @@ void VwireClass::syncVirtual(uint8_t pin) {
   // Use stack buffer for topic
   char topic[96];
   snprintf(topic, sizeof(topic), "vwire/%s/sync/V%d", _deviceId, pin);
-  _mqttClient.beginPublish(topic, 0, false, 1);  // QoS 1 for reliable sync
+  _mqttClient.beginPublish(topic, 0, false);
   _mqttClient.endPublish();
 }
 
@@ -480,7 +482,7 @@ void VwireClass::syncAll() {
   if (!connected()) return;
   char topic[96];
   snprintf(topic, sizeof(topic), "vwire/%s/sync", _deviceId);
-  _mqttClient.beginPublish(topic, 3, false, 1);  // QoS 1 for reliable sync
+  _mqttClient.beginPublish(topic, 3, false);
   _mqttClient.print("all");
   _mqttClient.endPublish();
 }
@@ -515,7 +517,7 @@ void VwireClass::notify(const char* message) {
   char topic[96];
   snprintf(topic, sizeof(topic), "vwire/%s/notify", _deviceId);
   unsigned int len = strlen(message);
-  _mqttClient.beginPublish(topic, len, false, 1);  // QoS 1 for reliable notification
+  _mqttClient.beginPublish(topic, len, false);
   _mqttClient.print(message);
   _mqttClient.endPublish();
   _debugPrintf("[Vwire] Notify: %s", message);
@@ -531,7 +533,7 @@ void VwireClass::email(const char* subject, const char* body) {
   snprintf(buffer, sizeof(buffer), "{\"subject\":\"%s\",\"body\":\"%s\"}", subject, body);
   
   unsigned int len = strlen(buffer);
-  _mqttClient.beginPublish(topic, len, false, 1);  // QoS 1 for reliable email
+  _mqttClient.beginPublish(topic, len, false);
   _mqttClient.print(buffer);
   _mqttClient.endPublish();
   _debugPrintf("[Vwire] Email: %s", subject);
@@ -542,7 +544,7 @@ void VwireClass::log(const char* message) {
   char topic[96];
   snprintf(topic, sizeof(topic), "vwire/%s/log", _deviceId);
   unsigned int len = strlen(message);
-  _mqttClient.beginPublish(topic, len, false, 1);  // QoS 1 for reliable logging
+  _mqttClient.beginPublish(topic, len, false);
   _mqttClient.print(message);
   _mqttClient.endPublish();
 }
