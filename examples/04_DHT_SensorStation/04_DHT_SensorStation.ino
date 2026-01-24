@@ -281,6 +281,19 @@ void setup() {
   Vwire.config(AUTH_TOKEN, MQTT_BROKER, MQTT_PORT);
   Vwire.setTransport(MQTT_TRANSPORT);
   
+  // ==========================================================================
+  // OPTIONAL: Enable Reliable Delivery for critical sensor data
+  // ==========================================================================
+  // Uncomment these lines if you need guaranteed delivery (e.g., for billing,
+  // compliance, or any scenario where losing data points is unacceptable).
+  // 
+  // Vwire.setReliableDelivery(true);    // Enable ACK-based delivery
+  // Vwire.setAckTimeout(5000);          // Wait 5 seconds for server ACK
+  // Vwire.setMaxRetries(3);             // Retry up to 3 times
+  // 
+  // See example 12_ReliableDelivery for full details and delivery callbacks.
+  // ==========================================================================
+  
   // Note: Handlers are auto-registered via VWIRE_WRITE(), VWIRE_CONNECTED(),
   // and VWIRE_DISCONNECTED() macros - no need to call onVirtualWrite() etc.
   

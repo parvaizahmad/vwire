@@ -769,6 +769,7 @@ Get last error code.
 | `VWIRE_ERR_HANDLER_FULL` | Max handlers reached (32) |
 | `VWIRE_ERR_TIMEOUT` | Operation timeout |
 | `VWIRE_ERR_SSL_FAILED` | SSL/TLS handshake failed |
+| `VWIRE_ERR_QUEUE_FULL` | Reliable delivery queue full (10 msgs) |
 
 ```cpp
 if (!Vwire.begin(WIFI_SSID, WIFI_PASS)) {
@@ -855,6 +856,7 @@ Handlers: 3
 | [08_Motor_Servo](examples/08_Motor_Servo) | DC motor and servo control |
 | [10_Minimal](examples/10_Minimal) | Simplest possible example |
 | [11_MQTTS_Secure](examples/11_MQTTS_Secure) | Secure TLS connection example |
+| [12_ReliableDelivery](examples/12_ReliableDelivery) | **NEW** Guaranteed delivery with ACK |
 
 ---
 
