@@ -12,7 +12,7 @@
  * - Generic Arduino with WiFi
  * 
  * Copyright (c) 2026 Vwire IOT
- * Website: https://vwireiot.com
+ * Website: https://vwire.io
  * MIT License
  */
 

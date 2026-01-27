@@ -4,7 +4,7 @@
  * Non-blocking software timer using millis() for universal compatibility.
  * 
  * Copyright (c) 2026 Vwire IOT
- * Website: https://vwireiot.com
+ * Website: https://vwire.io
  * MIT License
  */
 

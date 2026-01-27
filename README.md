@@ -6,7 +6,7 @@ Connect your microcontrollers to **Vwire IOT** cloud platform via secure MQTT.
 [![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](https://github.com/parvaizahmad/vwire)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-🌐 **Cloud Portal**: [https://vwireiot.com](https://vwireiot.com)
+🌐 **Cloud Portal**: [https://vwire.io](https://vwire.io)
 
 ---
 
@@ -156,7 +156,7 @@ Vwire.config(AUTH_TOKEN);
 Vwire.setTransport(VWIRE_TRANSPORT_TCP);
 ```
 
-> 🌐 Sign up for free at [https://vwireiot.com](https://vwireiot.com) to get your AUTH_TOKEN
+> 🌐 Sign up for free at [https://vwire.io](https://vwire.io) to get your AUTH_TOKEN
 
 ---
 
@@ -1046,10 +1046,10 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🆘 Support
 
-- 🌐 **Cloud Portal**: [https://vwireiot.com](https://vwireiot.com)
-- 📖 **Documentation**: [https://vwireiot.com/docs](https://vwireiot.com/docs)
+- 🌐 **Cloud Portal**: [https://vwire.io](https://vwire.io)
+- 📖 **Documentation**: [https://vwire.io/docs](https://vwire.io/docs)
 - 🐛 **Issues**: [https://github.com/parvaizahmad/vwire/issues](https://github.com/parvaizahmad/vwire/issues)
-- 📧 **Email**: support@vwireiot.com
+- 📧 **Email**: support@vwire.io
 
 ---
 

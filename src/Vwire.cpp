@@ -4,7 +4,7 @@
  * Professional IoT platform library for Arduino, ESP32, ESP8266 and compatible boards.
  * 
  * Copyright (c) 2026 Vwire IOT
- * Website: https://vwireiot.com
+ * Website: https://vwire.io
  * MIT License
  */
 
