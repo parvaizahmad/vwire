@@ -79,7 +79,7 @@ void sendRSSI() {
   else if (rssi >= -50) quality = 100;
   else quality = 2 * (rssi + 100);
   
-  Vwire.virtualWrite(V0, quality);
+  Vwire.virtualSend(V0, quality);
   Serial.printf("RSSI: %d dBm (%d%%)\n", rssi, quality);
 }
 
@@ -90,7 +90,7 @@ void sendSensorData() {
   // Simulated temperature (replace with real sensor)
   float temperature = 22.0 + (random(-20, 20) / 10.0);
   
-  Vwire.virtualWrite(V1, temperature);
+  Vwire.virtualSend(V1, temperature);
   Serial.printf("Temperature: %.1f°C\n", temperature);
 }
 
@@ -102,7 +102,7 @@ void blinkLED() {
   digitalWrite(LED_PIN, ledState);
   
   // Send heartbeat to dashboard
-  Vwire.virtualWrite(V3, ledState ? 1 : 0);
+  Vwire.virtualSend(V3, ledState ? 1 : 0);
 }
 
 /**
@@ -110,7 +110,7 @@ void blinkLED() {
  */
 void updateUptime() {
   uptimeSeconds++;
-  Vwire.virtualWrite(V2, uptimeSeconds);
+  Vwire.virtualSend(V2, uptimeSeconds);
 }
 
 /**
@@ -136,7 +136,7 @@ void startupComplete() {
 // =============================================================================
 
 // Toggle fast blink mode
-VWIRE_WRITE(V4) {
+VWIRE_RECEIVE(V4) {
   if (param.asBool()) {
     // Change to fast blink (100ms)
     timer.changeInterval(blinkTimerId, 100);

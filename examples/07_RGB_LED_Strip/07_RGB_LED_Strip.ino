@@ -266,7 +266,7 @@ void runEffect() {
 // VIRTUAL PIN HANDLERS (Auto-registered via macros)
 // =============================================================================
 
-VWIRE_WRITE(V0) {
+VWIRE_RECEIVE(V0) {
   powerOn = param.asBool();
   
   if (!powerOn) {
@@ -276,7 +276,7 @@ VWIRE_WRITE(V0) {
   Serial.printf("Power: %s\n", powerOn ? "ON" : "OFF");
 }
 
-VWIRE_WRITE(V1) {
+VWIRE_RECEIVE(V1) {
   // zeRGBa sends comma-separated RGB values
   if (param.getArraySize() >= 3) {
     red = param.getArrayItemInt(0);
@@ -287,19 +287,19 @@ VWIRE_WRITE(V1) {
   Serial.printf("Color: R=%d G=%d B=%d\n", red, green, blue);
 }
 
-VWIRE_WRITE(V2) {
+VWIRE_RECEIVE(V2) {
   brightness = param.asInt();
   setBrightness(brightness);
   Serial.printf("Brightness: %d\n", brightness);
 }
 
-VWIRE_WRITE(V3) {
+VWIRE_RECEIVE(V3) {
   currentEffect = param.asInt();
   if (currentEffect >= NUM_EFFECTS) currentEffect = 0;
   Serial.printf("Effect: %s\n", EFFECTS[currentEffect]);
 }
 
-VWIRE_WRITE(V4) {
+VWIRE_RECEIVE(V4) {
   effectSpeed = param.asInt();
   Serial.printf("Effect Speed: %d\n", effectSpeed);
 }
@@ -312,11 +312,11 @@ VWIRE_CONNECTED() {
   Serial.println("Connected to Vwire IOT!");
   
   // Sync current state
-  Vwire.virtualWrite(V0, powerOn);
-  Vwire.virtualWritef(V1, "%d,%d,%d", red, green, blue);
-  Vwire.virtualWrite(V2, brightness);
-  Vwire.virtualWrite(V3, currentEffect);
-  Vwire.virtualWrite(V4, effectSpeed);
+  Vwire.virtualSend(V0, powerOn);
+  Vwire.virtualSendf(V1, "%d,%d,%d", red, green, blue);
+  Vwire.virtualSend(V2, brightness);
+  Vwire.virtualSend(V3, currentEffect);
+  Vwire.virtualSend(V4, effectSpeed);
 }
 
 VWIRE_DISCONNECTED() {
@@ -362,7 +362,7 @@ void setup() {
   Vwire.config(AUTH_TOKEN);
   Vwire.setTransport(TRANSPORT);
   
-  // Note: VWIRE_WRITE(), VWIRE_CONNECTED(), and VWIRE_DISCONNECTED() macros
+  // Note: VWIRE_RECEIVE(), VWIRE_CONNECTED(), and VWIRE_DISCONNECTED() macros
   // automatically register handlers - no manual registration needed!
   
   // Connect

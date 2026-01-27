@@ -136,10 +136,10 @@ void checkAlerts() {
       Vwire.notify(msg);
       
       // Log to terminal
-      Vwire.virtualWrite(V7, msg);
+      Vwire.virtualSend(V7, msg);
       
       // Turn on alert LED
-      Vwire.virtualWrite(V6, 1);
+      Vwire.virtualSend(V6, 1);
       digitalWrite(LED_BUILTIN, HIGH);
       
       Serial.println(msg);
@@ -149,9 +149,9 @@ void checkAlerts() {
     
     if (consecutiveAlerts == 0 && alertActive) {
       alertActive = false;
-      Vwire.virtualWrite(V6, 0);
+      Vwire.virtualSend(V6, 0);
       digitalWrite(LED_BUILTIN, LOW);
-      Vwire.virtualWrite(V7, "Temperature returned to normal");
+      Vwire.virtualSend(V7, "Temperature returned to normal");
       Serial.println("Alert cleared");
     }
   }
@@ -159,13 +159,13 @@ void checkAlerts() {
 
 void sendSensorData() {
   // Send current values
-  Vwire.virtualWrite(V0, temperature);
-  Vwire.virtualWrite(V1, humidity);
-  Vwire.virtualWrite(V2, heatIndex);
+  Vwire.virtualSend(V0, temperature);
+  Vwire.virtualSend(V1, humidity);
+  Vwire.virtualSend(V2, heatIndex);
   
   // Send to graphs (SuperChart widget)
-  Vwire.virtualWrite(V3, temperature);
-  Vwire.virtualWrite(V4, humidity);
+  Vwire.virtualSend(V3, temperature);
+  Vwire.virtualSend(V4, humidity);
   
   Serial.printf("Sent: T=%.1fC, H=%.1f%%, HI=%.1fC\n",
                 temperature, humidity, heatIndex);
@@ -206,16 +206,16 @@ void sendDailySummary() {
 }
 
 // =============================================================================
-// VIRTUAL PIN HANDLERS (Auto-registered via VWIRE_WRITE macro)
+// VIRTUAL PIN HANDLERS (Auto-registered via VWIRE_RECEIVE macro)
 // =============================================================================
 
-// Threshold slider on V5 - auto-registered, no need for Vwire.onVirtualWrite()
-VWIRE_WRITE(V5) {
+// Threshold slider on V5 - auto-registered, no need for Vwire.onVirtualReceive()
+VWIRE_RECEIVE(V5) {
   tempAlertThreshold = param.asFloat();
   
   char msg[64];
   snprintf(msg, sizeof(msg), "Alert threshold set to %.1fC", tempAlertThreshold);
-  Vwire.virtualWrite(V7, msg);
+  Vwire.virtualSend(V7, msg);
   Serial.println(msg);
   
   // Re-check alerts with new threshold
@@ -230,14 +230,14 @@ VWIRE_CONNECTED() {
   Serial.println("Connected to Vwire IOT!");
   
   // Sync threshold setting
-  Vwire.virtualWrite(V5, tempAlertThreshold);
-  Vwire.virtualWrite(V6, alertActive ? 1 : 0);
+  Vwire.virtualSend(V5, tempAlertThreshold);
+  Vwire.virtualSend(V6, alertActive ? 1 : 0);
   
   // Log connection
   char msg[64];
   snprintf(msg, sizeof(msg), "Device connected - IP: %s", 
            WiFi.localIP().toString().c_str());
-  Vwire.virtualWrite(V7, msg);
+  Vwire.virtualSend(V7, msg);
   
   // Send initial reading
   if (readDHT()) {
@@ -287,8 +287,8 @@ void setup() {
   // See example 12_ReliableDelivery for full details and delivery callbacks.
   // ==========================================================================
   
-  // Note: Handlers are auto-registered via VWIRE_WRITE(), VWIRE_CONNECTED(),
-  // and VWIRE_DISCONNECTED() macros - no need to call onVirtualWrite() etc.
+  // Note: Handlers are auto-registered via VWIRE_RECEIVE(), VWIRE_CONNECTED(),
+  // and VWIRE_DISCONNECTED() macros - no need to call onVirtualReceive() etc.
   
   // Connect
   Vwire.begin(WIFI_SSID, WIFI_PASSWORD);

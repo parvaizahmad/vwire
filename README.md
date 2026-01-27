@@ -67,7 +67,7 @@ const uint16_t MQTT_PORT = 8883;  // TLS port (recommended)
 // ===== HANDLERS (auto-registered!) =====
 
 // Called when dashboard writes to V0 (e.g., button press)
-VWIRE_WRITE(V0) {
+VWIRE_RECEIVE(V0) {
   int value = param.asInt();  // 'param' is the VirtualPin
   digitalWrite(LED_BUILTIN, value);
   Serial.printf("V0 = %d\n", value);
@@ -108,7 +108,7 @@ void loop() {
   static unsigned long lastSend = 0;
   if (Vwire.connected() && millis() - lastSend > 5000) {
     lastSend = millis();
-    Vwire.virtualWrite(V1, millis() / 1000);  // Send uptime to V1
+    Vwire.virtualSend(V1, millis() / 1000);  // Send uptime to V1
   }
 }
 ```
@@ -325,7 +325,7 @@ void loop() {
     lastSend = millis();
     
     float kWh = readEnergyMeter();
-    Vwire.virtualWrite(V0, kWh);  // Automatically uses reliable delivery
+    Vwire.virtualSend(V0, kWh);  // Automatically uses reliable delivery
     
     Serial.printf("Sent: %.2f kWh (pending: %d)\n", kWh, Vwire.getPendingCount());
   }
@@ -387,7 +387,7 @@ Check if connected to MQTT broker. Returns `true` if connected.
 
 ```cpp
 if (Vwire.connected()) {
-  Vwire.virtualWrite(0, sensorValue);
+  Vwire.virtualSend(0, sensorValue);
 }
 ```
 
@@ -404,47 +404,47 @@ Vwire.disconnect();
 
 Virtual pins (V0-V127) are used for bidirectional communication with the dashboard.
 
-#### `Vwire.virtualWrite(pin, value)`
+#### `Vwire.virtualSend(pin, value)`
 Write a value to a virtual pin. Supports all data types.
 
 ```cpp
 // Integer
-Vwire.virtualWrite(0, 42);
+Vwire.virtualSend(0, 42);
 
 // Float
-Vwire.virtualWrite(1, 23.5);
+Vwire.virtualSend(1, 23.5);
 
 // Boolean
-Vwire.virtualWrite(2, true);
+Vwire.virtualSend(2, true);
 
 // String
-Vwire.virtualWrite(3, "Hello Vwire!");
+Vwire.virtualSend(3, "Hello Vwire!");
 
 // Character array
 char msg[] = "Status OK";
-Vwire.virtualWrite(4, msg);
+Vwire.virtualSend(4, msg);
 ```
 
-#### `Vwire.virtualWritef(pin, format, ...)`
+#### `Vwire.virtualSendf(pin, format, ...)`
 Write formatted string to virtual pin (printf-style).
 
 ```cpp
 float temp = 25.5;
 float humidity = 60.2;
-Vwire.virtualWritef(0, "%.1f°C, %.0f%%", temp, humidity);
+Vwire.virtualSendf(0, "%.1f°C, %.0f%%", temp, humidity);
 ```
 
-#### `Vwire.virtualWriteArray(pin, values, count)`
+#### `Vwire.virtualSendArray(pin, values, count)`
 Write an array of values (comma-separated).
 
 ```cpp
 // Integer array
 int values[] = {10, 20, 30, 40, 50};
-Vwire.virtualWriteArray(0, values, 5);  // Sends "10,20,30,40,50"
+Vwire.virtualSendArray(0, values, 5);  // Sends "10,20,30,40,50"
 
 // Float array (RGB example)
 float rgb[] = {255.0, 128.0, 64.0};
-Vwire.virtualWriteArray(1, rgb, 3);  // Sends "255.00,128.00,64.00"
+Vwire.virtualSendArray(1, rgb, 3);  // Sends "255.00,128.00,64.00"
 ```
 
 #### `Vwire.syncVirtual(pin)`
@@ -465,21 +465,21 @@ Vwire.syncAll();
 
 ### Event Handlers 
 
-The library supports **Auto-registration** - handlers are automatically registered at startup using macros. No need to manually call `onVirtualWrite()` in setup()!
+The library supports **Auto-registration** - handlers are automatically registered at startup using macros. No need to manually call `onVirtualReceive()` in setup()!
 
-#### `VWIRE_WRITE(Vpin)` - Handle Virtual Pin Writes
+#### `VWIRE_RECEIVE(Vpin)` - Handle Virtual Pin Writes
 
 Define a handler that's **automatically called** when the dashboard writes to a virtual pin.
 
 ```cpp
 // Automatically registered - no setup() code needed!
-VWIRE_WRITE(V0) {
+VWIRE_RECEIVE(V0) {
   int value = param.asInt();    // 'param' is the VirtualPin& parameter
   Serial.printf("V0 received: %d\n", value);
   digitalWrite(LED_PIN, value);
 }
 
-VWIRE_WRITE(V1) {
+VWIRE_RECEIVE(V1) {
   int brightness = param.asInt();
   analogWrite(LED_PIN, brightness);
 }
@@ -516,12 +516,12 @@ VWIRE_DISCONNECTED() {
 #include <Vwire.h>
 
 // Handlers are automatically registered - just define them!
-VWIRE_WRITE(V0) {
+VWIRE_RECEIVE(V0) {
   bool ledState = param.asBool();
   digitalWrite(LED_PIN, ledState);
 }
 
-VWIRE_WRITE(V1) {
+VWIRE_RECEIVE(V1) {
   int brightness = param.asInt();
   analogWrite(LED_PIN, brightness);
 }
@@ -549,7 +549,7 @@ void loop() {
   Vwire.run();
   
   if (Vwire.connected()) {
-    Vwire.virtualWrite(V2, analogRead(SENSOR_PIN));
+    Vwire.virtualSend(V2, analogRead(SENSOR_PIN));
   }
 }
 ```
@@ -559,8 +559,8 @@ void loop() {
 Use `V0` through `V31` for pin numbers:
 
 ```cpp
-Vwire.virtualWrite(V0, 42);           // Same as virtualWrite(0, 42)
-Vwire.virtualWrite(V1, temperature);
+Vwire.virtualSend(V0, 42);           // Same as virtualSend(0, 42)
+Vwire.virtualSend(V1, temperature);
 Vwire.sync(V0, V1, V2);               // Sync multiple pins
 ```
 
@@ -570,7 +570,7 @@ Vwire.sync(V0, V1, V2);               // Sync multiple pins
 
 You can still use manual registration if preferred:
 
-#### `Vwire.onVirtualWrite(pin, handler)`
+#### `Vwire.onVirtualReceive(pin, handler)`
 Manually register handler for incoming virtual pin data.
 
 ```cpp
@@ -580,7 +580,7 @@ void onButtonPress(VirtualPin& pin) {
 }
 
 void setup() {
-  Vwire.onVirtualWrite(0, onButtonPress);  // Manual registration
+  Vwire.onVirtualReceive(0, onButtonPress);  // Manual registration
 }
 ```
 
@@ -600,11 +600,11 @@ void setup() {
 #### Using Lambda Functions
 
 ```cpp
-Vwire.onVirtualWrite(0, [](VirtualPin& pin) {
+Vwire.onVirtualReceive(0, [](VirtualPin& pin) {
   Serial.println(pin.asBool() ? "ON" : "OFF");
 });
 
-Vwire.onVirtualWrite(1, [](VirtualPin& pin) {
+Vwire.onVirtualReceive(1, [](VirtualPin& pin) {
   analogWrite(LED_PIN, pin.asInt());
 });
 
@@ -864,15 +864,15 @@ Handlers: 3
 
 | Widget | Pin Type | Data Format | Example |
 |--------|----------|-------------|---------|
-| **Button** | V0-V127 | `0` or `1` | `Vwire.virtualWrite(0, 1);` |
-| **Slider** | V0-V127 | Number (range) | `Vwire.virtualWrite(1, 75);` |
-| **Gauge** | V0-V127 | Number | `Vwire.virtualWrite(2, temperature);` |
-| **Value Display** | V0-V127 | Number/String | `Vwire.virtualWrite(3, "Online");` |
-| **LED** | V0-V127 | `0` or `1` | `Vwire.virtualWrite(4, ledState);` |
-| **Graph** | V0-V127 | Number | `Vwire.virtualWrite(5, sensorValue);` |
-| **zeRGBa** | V0-V127 | `R,G,B` | `Vwire.virtualWriteArray(6, rgb, 3);` |
+| **Button** | V0-V127 | `0` or `1` | `Vwire.virtualSend(0, 1);` |
+| **Slider** | V0-V127 | Number (range) | `Vwire.virtualSend(1, 75);` |
+| **Gauge** | V0-V127 | Number | `Vwire.virtualSend(2, temperature);` |
+| **Value Display** | V0-V127 | Number/String | `Vwire.virtualSend(3, "Online");` |
+| **LED** | V0-V127 | `0` or `1` | `Vwire.virtualSend(4, ledState);` |
+| **Graph** | V0-V127 | Number | `Vwire.virtualSend(5, sensorValue);` |
+| **zeRGBa** | V0-V127 | `R,G,B` | `Vwire.virtualSendArray(6, rgb, 3);` |
 | **Joystick** | V0-V127 | `X,Y` | Handled via array |
-| **Terminal** | V0-V127 | String | `Vwire.virtualWrite(7, "Log entry");` |
+| **Terminal** | V0-V127 | String | `Vwire.virtualSend(7, "Log entry");` |
 
 ---
 
@@ -896,7 +896,7 @@ void setup() {
 | **MQTT connection fails** | Wrong server/port | Verify server address and port |
 | **TLS handshake fails** | Certificate issues | Use `VWIRE_TRANSPORT_TCP` for testing |
 | **Frequent disconnects** | Weak WiFi signal | Check RSSI with `getWiFiRSSI()` |
-| **Data not received** | Handler not registered | Call `onVirtualWrite()` before `begin()` |
+| **Data not received** | Handler not registered | Call `onVirtualReceive()` before `begin()` |
 | **ESP8266 crashes** | Low memory | Reduce buffer sizes, check `getFreeHeap()` |
 
 ### Memory Usage Tips (ESP8266)

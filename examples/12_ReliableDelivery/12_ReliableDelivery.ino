@@ -102,7 +102,7 @@ void onDeliveryResult(const char* msgId, bool success) {
     Serial.printf("✓ Delivered [%s] - Total: %lu successful\n", msgId, successCount);
     
     // Update dashboard LED (green = success)
-    Vwire.virtualWrite(V3, 1);
+    Vwire.virtualSend(V3, 1);
     
   } else {
     // ✗ Message failed after all retries
@@ -110,7 +110,7 @@ void onDeliveryResult(const char* msgId, bool success) {
     Serial.printf("✗ FAILED [%s] - Total: %lu failures\n", msgId, failureCount);
     
     // Update dashboard LED (red = failure)
-    Vwire.virtualWrite(V3, 0);
+    Vwire.virtualSend(V3, 0);
     
     // IMPORTANT: For critical data, you might want to:
     // 1. Store to SPIFFS/LittleFS for later retry
@@ -122,8 +122,8 @@ void onDeliveryResult(const char* msgId, bool success) {
   }
   
   // Update statistics on dashboard
-  Vwire.virtualWrite(V1, (int)successCount);
-  Vwire.virtualWrite(V2, (int)failureCount);
+  Vwire.virtualSend(V1, (int)successCount);
+  Vwire.virtualSend(V2, (int)failureCount);
 }
 
 // =============================================================================
@@ -221,8 +221,8 @@ void loop() {
     float kWh = readEnergySensor();
     
     // Send to server with reliable delivery
-    // The virtualWrite() automatically uses reliable delivery when enabled
-    Vwire.virtualWrite(V0, kWh);
+    // The virtualSend() automatically uses reliable delivery when enabled
+    Vwire.virtualSend(V0, kWh);
     
     Serial.printf("\n📊 Sent: %.2f kWh\n", kWh);
     Serial.printf("   Pending ACKs: %d\n", Vwire.getPendingCount());

@@ -127,14 +127,14 @@ void updateLED() {
 // VIRTUAL PIN HANDLERS
 // =============================================================================
 
-VWIRE_WRITE(V0) {
+VWIRE_RECEIVE(V0) {
   ledState = param.asBool();
   updateLED();
   saveSettings();
   Serial.printf("LED: %s\n", ledState ? "ON" : "OFF");
 }
 
-VWIRE_WRITE(V1) {
+VWIRE_RECEIVE(V1) {
   ledBrightness = param.asInt();
   updateLED();
   saveSettings();
@@ -157,11 +157,11 @@ void readSensors() {
 }
 
 void sendSensorData() {
-  Vwire.virtualWrite(V2, temperature);
-  Vwire.virtualWrite(V3, map(lightLevel, 0, 1023, 0, 100));
-  Vwire.virtualWrite(V4, WiFi.RSSI());
-  Vwire.virtualWrite(V5, 1);  // Online
-  Vwire.virtualWrite(V6, temperature);  // For graph
+  Vwire.virtualSend(V2, temperature);
+  Vwire.virtualSend(V3, map(lightLevel, 0, 1023, 0, 100));
+  Vwire.virtualSend(V4, WiFi.RSSI());
+  Vwire.virtualSend(V5, 1);  // Online
+  Vwire.virtualSend(V6, temperature);  // For graph
   
   Serial.printf("Sent: T=%.1f°C, Light=%d%%, RSSI=%d\n",
                 temperature, 
@@ -180,7 +180,7 @@ VWIRE_CONNECTED() {
   Vwire.sync(V0, V1);  // Sync LED state and brightness
   
   // Send online status
-  Vwire.virtualWrite(V5, 1);
+  Vwire.virtualSend(V5, 1);
   
   // Print debug info
   Serial.printf("Chip ID: %08X\n", ESP.getChipId());
@@ -237,7 +237,7 @@ void setup() {
   updateLED();
   
   // Configure Vwire (uses default server: mqtt.vwire.io)
-  // No need to register handlers - VWIRE_WRITE() macros auto-register!
+  // No need to register handlers - VWIRE_RECEIVE() macros auto-register!
   Vwire.setDebug(true);
   Vwire.config(AUTH_TOKEN);
   Vwire.setTransport(TRANSPORT);

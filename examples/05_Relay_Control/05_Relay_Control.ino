@@ -96,10 +96,10 @@ void setRelay(int index, bool state) {
   digitalWrite(RELAY_PINS[index], state ? RELAY_ON : RELAY_OFF);
   
   // Update dashboard
-  Vwire.virtualWrite(index, state ? 1 : 0);
+  Vwire.virtualSend(index, state ? 1 : 0);
   
   // Update status LED (V7 + index)
-  Vwire.virtualWrite(7 + index, state ? 1 : 0);
+  Vwire.virtualSend(7 + index, state ? 1 : 0);
   
   Serial.printf("Relay %d (%s): %s\n", index + 1, RELAY_NAMES[index], 
                 state ? "ON" : "OFF");
@@ -123,10 +123,10 @@ int getActiveRelayCount() {
 
 void syncAllRelays() {
   for (int i = 0; i < NUM_RELAYS; i++) {
-    Vwire.virtualWrite(i, relayStates[i] ? 1 : 0);
-    Vwire.virtualWrite(V7 + i, relayStates[i] ? 1 : 0);
+    Vwire.virtualSend(i, relayStates[i] ? 1 : 0);
+    Vwire.virtualSend(V7 + i, relayStates[i] ? 1 : 0);
   }
-  Vwire.virtualWrite(V6, getActiveRelayCount());
+  Vwire.virtualSend(V6, getActiveRelayCount());
 }
 
 // =============================================================================
@@ -151,7 +151,7 @@ void checkButtons() {
         setRelay(i, !relayStates[i]);
         
         // Update active count
-        Vwire.virtualWrite(6, getActiveRelayCount());
+        Vwire.virtualSend(6, getActiveRelayCount());
       }
     }
     
@@ -164,23 +164,23 @@ void checkButtons() {
 // =============================================================================
 
 // Relay control handlers
-VWIRE_WRITE(V0) { setRelay(0, param.asBool()); Vwire.virtualWrite(V6, getActiveRelayCount()); }
-VWIRE_WRITE(V1) { setRelay(1, param.asBool()); Vwire.virtualWrite(V6, getActiveRelayCount()); }
-VWIRE_WRITE(V2) { setRelay(2, param.asBool()); Vwire.virtualWrite(V6, getActiveRelayCount()); }
-VWIRE_WRITE(V3) { setRelay(3, param.asBool()); Vwire.virtualWrite(V6, getActiveRelayCount()); }
+VWIRE_RECEIVE(V0) { setRelay(0, param.asBool()); Vwire.virtualSend(V6, getActiveRelayCount()); }
+VWIRE_RECEIVE(V1) { setRelay(1, param.asBool()); Vwire.virtualSend(V6, getActiveRelayCount()); }
+VWIRE_RECEIVE(V2) { setRelay(2, param.asBool()); Vwire.virtualSend(V6, getActiveRelayCount()); }
+VWIRE_RECEIVE(V3) { setRelay(3, param.asBool()); Vwire.virtualSend(V6, getActiveRelayCount()); }
 
 // All ON/OFF handlers
-VWIRE_WRITE(V4) {
+VWIRE_RECEIVE(V4) {
   if (param.asInt() == 1) {
     setAllRelays(true);
-    Vwire.virtualWrite(V6, NUM_RELAYS);
+    Vwire.virtualSend(V6, NUM_RELAYS);
   }
 }
 
-VWIRE_WRITE(V5) {
+VWIRE_RECEIVE(V5) {
   if (param.asInt() == 1) {
     setAllRelays(false);
-    Vwire.virtualWrite(V6, 0);
+    Vwire.virtualSend(V6, 0);
   }
 }
 
@@ -238,7 +238,7 @@ void setup() {
   }
   
   // Configure Vwire (uses default server: mqtt.vwire.io)
-  // No need to register handlers - VWIRE_WRITE() macros auto-register!
+  // No need to register handlers - VWIRE_RECEIVE() macros auto-register!
   Vwire.setDebug(true);
   Vwire.config(AUTH_TOKEN);
   Vwire.setTransport(TRANSPORT);
@@ -260,6 +260,6 @@ void loop() {
   // Periodic status update
   if (Vwire.connected() && millis() - lastStatusUpdate >= STATUS_INTERVAL) {
     lastStatusUpdate = millis();
-    Vwire.virtualWrite(V6, getActiveRelayCount());
+    Vwire.virtualSend(V6, getActiveRelayCount());
   }
 }

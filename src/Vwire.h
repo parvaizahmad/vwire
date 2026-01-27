@@ -313,7 +313,7 @@ typedef void (*DeliveryCallback)(const char* msgId, bool success);
 
 /**
  * @brief Internal structure for auto-registered pin handlers
- * @note Used internally by VWIRE_WRITE macro
+ * @note Used internally by VWIRE_RECEIVE macro
  */
 struct VwireAutoHandler {
   uint8_t pin;           ///< Virtual pin number
@@ -321,13 +321,13 @@ struct VwireAutoHandler {
 };
 
 // External declarations for the auto-handler system
-extern VwireAutoHandler _vwireAutoWriteHandlers[];
-extern uint8_t _vwireAutoWriteCount;
+extern VwireAutoHandler _vwireAutoReceiveHandlers[];
+extern uint8_t _vwireAutoReceiveCount;
 extern ConnectionHandler _vwireAutoConnectHandler;
 extern ConnectionHandler _vwireAutoDisconnectHandler;
 
 // Internal registration functions (called by macros)
-void _vwireRegisterWriteHandler(uint8_t pin, PinHandler handler);
+void _vwireRegisterReceiveHandler(uint8_t pin, PinHandler handler);
 void _vwireRegisterConnectHandler(ConnectionHandler handler);
 void _vwireRegisterDisconnectHandler(ConnectionHandler handler);
 
@@ -341,8 +341,8 @@ void _vwireRegisterDisconnectHandler(ConnectionHandler handler);
  * automatically called when events occur. No manual registration needed.
  * 
  * @code
- * // Handle writes to virtual pin V0
- * VWIRE_WRITE(V0) {
+ * // Handle data received on virtual pin V0
+ * VWIRE_RECEIVE(V0) {
  *   int value = param.asInt();  // 'param' is VirtualPin&
  *   digitalWrite(LED_PIN, value);
  * }
@@ -365,18 +365,18 @@ void _vwireRegisterDisconnectHandler(ConnectionHandler handler);
 #define _VWIRE_UNIQUE(prefix, line) _VWIRE_CONCAT(prefix, line)
 
 /**
- * @brief Register handler for virtual pin write events
+ * @brief Register handler for virtual pin receive events (data from cloud)
  * @param vpin Virtual pin number (V0-V31 or 0-255)
  * @note The 'param' variable (VirtualPin&) is available inside the handler
  */
-#define VWIRE_WRITE(vpin) \
-  void _vwire_write_handler_##vpin(VirtualPin& param); \
+#define VWIRE_RECEIVE(vpin) \
+  void _vwire_receive_handler_##vpin(VirtualPin& param); \
   struct _VWIRE_UNIQUE(_VwireAutoReg_, __LINE__) { \
     _VWIRE_UNIQUE(_VwireAutoReg_, __LINE__)() { \
-      _vwireRegisterWriteHandler(vpin, _vwire_write_handler_##vpin); \
+      _vwireRegisterReceiveHandler(vpin, _vwire_receive_handler_##vpin); \
     } \
   } _VWIRE_UNIQUE(_vwireAutoRegInstance_, __LINE__); \
-  void _vwire_write_handler_##vpin(VirtualPin& param)
+  void _vwire_receive_handler_##vpin(VirtualPin& param)
 
 /**
  * @brief Placeholder for read requests (server requests data from device)
@@ -417,8 +417,8 @@ void _vwireRegisterDisconnectHandler(ConnectionHandler handler);
 /**
  * @brief Convenience macros for virtual pins V0-V31
  * @note Pins 0-255 are supported. For pins beyond V31, use the number directly:
- *       Vwire.virtualWrite(100, value);
- *       Vwire.virtualWrite(255, value);
+ *       Vwire.virtualSend(100, value);
+ *       Vwire.virtualSend(255, value);
  */
 #define V0  0
 #define V1  1
@@ -470,7 +470,7 @@ void _vwireRegisterDisconnectHandler(ConnectionHandler handler);
  * 
  * void loop() {
  *   Vwire.run();
- *   Vwire.virtualWrite(V0, sensorValue);
+ *   Vwire.virtualSend(V0, sensorValue);
  * }
  * @endcode
  */
@@ -628,44 +628,44 @@ public:
   int getWiFiRSSI();
   
   // =========================================================================
-  // VIRTUAL PIN WRITE OPERATIONS
+  // VIRTUAL PIN SEND OPERATIONS
   // =========================================================================
   
   /**
-   * @brief Write value to virtual pin
+   * @brief Send value to virtual pin (device → cloud)
    * @tparam T Value type (int, float, bool, String, etc.)
    * @param pin Virtual pin number (0-255)
    * @param value Value to send
    */
   template<typename T>
-  void virtualWrite(uint8_t pin, T value) {
+  void virtualSend(uint8_t pin, T value) {
     VirtualPin vp(value);
-    _virtualWriteInternal(pin, vp.asString());
+    _virtualSendInternal(pin, vp.asString());
   }
   
   /**
-   * @brief Write float array to virtual pin (comma-separated)
+   * @brief Send float array to virtual pin (comma-separated)
    * @param pin Virtual pin number
    * @param values Array of float values
    * @param count Number of values
    */
-  void virtualWriteArray(uint8_t pin, float* values, int count);
+  void virtualSendArray(uint8_t pin, float* values, int count);
   
   /**
-   * @brief Write int array to virtual pin (comma-separated)
+   * @brief Send int array to virtual pin (comma-separated)
    * @param pin Virtual pin number
    * @param values Array of int values
    * @param count Number of values
    */
-  void virtualWriteArray(uint8_t pin, int* values, int count);
+  void virtualSendArray(uint8_t pin, int* values, int count);
   
   /**
-   * @brief Write formatted string to virtual pin
+   * @brief Send formatted string to virtual pin
    * @param pin Virtual pin number
    * @param format Printf-style format string
    * @param ... Format arguments
    */
-  void virtualWritef(uint8_t pin, const char* format, ...);
+  void virtualSendf(uint8_t pin, const char* format, ...);
   
   // =========================================================================
   // SYNC OPERATIONS
@@ -704,12 +704,12 @@ public:
   // =========================================================================
   
   /**
-   * @brief Register handler for virtual pin write events
+   * @brief Register handler for virtual pin receive events (cloud → device)
    * @param pin Virtual pin number
    * @param handler Callback function
-   * @note Consider using VWIRE_WRITE() macro for auto-registration
+   * @note Consider using VWIRE_RECEIVE() macro for auto-registration
    */
-  void onVirtualWrite(uint8_t pin, PinHandler handler);
+  void onVirtualReceive(uint8_t pin, PinHandler handler);
   
   /**
    * @brief Register connection handler
@@ -910,7 +910,7 @@ private:
   void _setupClient();
   void _handleMessage(char* topic, byte* payload, unsigned int length);
   static void _mqttCallbackWrapper(char* topic, byte* payload, unsigned int length);
-  void _virtualWriteInternal(uint8_t pin, const String& value);
+  void _virtualSendInternal(uint8_t pin, const String& value);
   String _buildTopic(const char* type, int pin = -1);
   void _sendHeartbeat();
   void _setError(VwireError error);

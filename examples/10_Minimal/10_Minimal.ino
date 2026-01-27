@@ -30,6 +30,6 @@ void loop() {
   static unsigned long lastSend = 0;
   if (Vwire.connected() && millis() - lastSend > 5000) {
     lastSend = millis();
-    Vwire.virtualWrite(V0, millis() / 1000);
+    Vwire.virtualSend(V0, millis() / 1000);
   }
 }

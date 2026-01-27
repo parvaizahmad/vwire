@@ -20,16 +20,16 @@ static VwireClass* _vwireInstance = nullptr;
 // =============================================================================
 // AUTO-REGISTRATION SYSTEM
 // =============================================================================
-VwireAutoHandler _vwireAutoWriteHandlers[VWIRE_MAX_AUTO_HANDLERS];
-uint8_t _vwireAutoWriteCount = 0;
+VwireAutoHandler _vwireAutoReceiveHandlers[VWIRE_MAX_AUTO_HANDLERS];
+uint8_t _vwireAutoReceiveCount = 0;
 ConnectionHandler _vwireAutoConnectHandler = nullptr;
 ConnectionHandler _vwireAutoDisconnectHandler = nullptr;
 
-void _vwireRegisterWriteHandler(uint8_t pin, PinHandler handler) {
-  if (_vwireAutoWriteCount < VWIRE_MAX_AUTO_HANDLERS) {
-    _vwireAutoWriteHandlers[_vwireAutoWriteCount].pin = pin;
-    _vwireAutoWriteHandlers[_vwireAutoWriteCount].handler = handler;
-    _vwireAutoWriteCount++;
+void _vwireRegisterReceiveHandler(uint8_t pin, PinHandler handler) {
+  if (_vwireAutoReceiveCount < VWIRE_MAX_AUTO_HANDLERS) {
+    _vwireAutoReceiveHandlers[_vwireAutoReceiveCount].pin = pin;
+    _vwireAutoReceiveHandlers[_vwireAutoReceiveCount].handler = handler;
+    _vwireAutoReceiveCount++;
   }
 }
 
@@ -454,7 +454,7 @@ void VwireClass::_handleMessage(char* topic, byte* payload, unsigned int length)
     VirtualPin vpin;
     vpin.set(payloadStr);
     
-    // First, check manually registered handlers (onVirtualWrite)
+    // First, check manually registered handlers (onVirtualReceive)
     for (int i = 0; i < _pinHandlerCount; i++) {
       if (_pinHandlers[i].active && _pinHandlers[i].pin == pin) {
         if (_pinHandlers[i].handler) {
@@ -464,11 +464,11 @@ void VwireClass::_handleMessage(char* topic, byte* payload, unsigned int length)
       }
     }
     
-    // Then, check auto-registered handlers (VWIRE_WRITE macros)
-    for (uint8_t i = 0; i < _vwireAutoWriteCount; i++) {
-      if (_vwireAutoWriteHandlers[i].pin == pin) {
-        if (_vwireAutoWriteHandlers[i].handler) {
-          _vwireAutoWriteHandlers[i].handler(vpin);
+    // Then, check auto-registered handlers (VWIRE_RECEIVE macros)
+    for (uint8_t i = 0; i < _vwireAutoReceiveCount; i++) {
+      if (_vwireAutoReceiveHandlers[i].pin == pin) {
+        if (_vwireAutoReceiveHandlers[i].handler) {
+          _vwireAutoReceiveHandlers[i].handler(vpin);
         }
         return;  // Found handler, exit immediately
       }
@@ -479,7 +479,7 @@ void VwireClass::_handleMessage(char* topic, byte* payload, unsigned int length)
 // =============================================================================
 // VIRTUAL PIN OPERATIONS
 // =============================================================================
-void VwireClass::_virtualWriteInternal(uint8_t pin, const String& value) {
+void VwireClass::_virtualSendInternal(uint8_t pin, const String& value) {
   if (!connected()) {
     _setError(VWIRE_ERR_NOT_CONNECTED);
     return;
@@ -502,34 +502,34 @@ void VwireClass::_virtualWriteInternal(uint8_t pin, const String& value) {
   _mqttClient.beginPublish(topic, len, _settings.dataRetain);
   _mqttClient.print(payload);
   _mqttClient.endPublish();
-  _debugPrintf("[Vwire] Write V%d = %s", pin, value.c_str());
+  _debugPrintf("[Vwire] Send V%d = %s", pin, value.c_str());
 }
 
-void VwireClass::virtualWriteArray(uint8_t pin, float* values, int count) {
+void VwireClass::virtualSendArray(uint8_t pin, float* values, int count) {
   String str = "";
   for (int i = 0; i < count; i++) {
     if (i > 0) str += ",";
     str += String(values[i], 2);
   }
-  _virtualWriteInternal(pin, str);
+  _virtualSendInternal(pin, str);
 }
 
-void VwireClass::virtualWriteArray(uint8_t pin, int* values, int count) {
+void VwireClass::virtualSendArray(uint8_t pin, int* values, int count) {
   String str = "";
   for (int i = 0; i < count; i++) {
     if (i > 0) str += ",";
     str += String(values[i]);
   }
-  _virtualWriteInternal(pin, str);
+  _virtualSendInternal(pin, str);
 }
 
-void VwireClass::virtualWritef(uint8_t pin, const char* format, ...) {
+void VwireClass::virtualSendf(uint8_t pin, const char* format, ...) {
   char buffer[128];
   va_list args;
   va_start(args, format);
   vsnprintf(buffer, sizeof(buffer), format, args);
   va_end(args);
-  _virtualWriteInternal(pin, String(buffer));
+  _virtualSendInternal(pin, String(buffer));
 }
 
 void VwireClass::syncVirtual(uint8_t pin) {
@@ -553,7 +553,7 @@ void VwireClass::syncAll() {
 // =============================================================================
 // EVENT HANDLERS
 // =============================================================================
-void VwireClass::onVirtualWrite(uint8_t pin, PinHandler handler) {
+void VwireClass::onVirtualReceive(uint8_t pin, PinHandler handler) {
   if (_pinHandlerCount >= VWIRE_MAX_HANDLERS) {
     _setError(VWIRE_ERR_HANDLER_FULL);
     _debugPrint("[Vwire] Error: Max handlers reached!");

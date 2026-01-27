@@ -57,7 +57,7 @@ bool ledState = false;
 // ============================================================================
 
 // Called when dashboard sends a value to V0 (LED)
-VWIRE_WRITE(V0) {
+VWIRE_RECEIVE(V0) {
   ledState = param.asBool();
   #if defined(ESP8266)
   digitalWrite(LED_PIN, ledState ? LOW : HIGH);  // Active LOW on ESP8266
@@ -75,7 +75,7 @@ VWIRE_CONNECTED() {
   Serial.printf("  Free heap: %d bytes\n", Vwire.getFreeHeap());
   
   // Sync current LED state to dashboard
-  Vwire.virtualWrite(V0, ledState);
+  Vwire.virtualSend(V0, ledState);
 }
 
 // Called when Vwire disconnects
@@ -113,7 +113,7 @@ void setup() {
   Vwire.setTransport(TRANSPORT);
   Vwire.setDebug(true);
   
-  // Note: VWIRE_WRITE, VWIRE_CONNECTED, VWIRE_DISCONNECTED macros auto-register!
+  // Note: VWIRE_RECEIVE, VWIRE_CONNECTED, VWIRE_DISCONNECTED macros auto-register!
   
   // Connect to WiFi and MQTT broker
   Serial.println("Connecting...");
@@ -141,10 +141,10 @@ void loop() {
     
     if (buttonState == LOW) {  // Button pressed
       Serial.println("Button pressed!");
-      Vwire.virtualWrite(V1, 1);
+      Vwire.virtualSend(V1, 1);
       Vwire.notify("Button pressed on device!");
     } else {
-      Vwire.virtualWrite(V1, 0);
+      Vwire.virtualSend(V1, 0);
     }
   }
   
@@ -152,8 +152,8 @@ void loop() {
   if (Vwire.connected() && millis() - lastHeapReport > 30000) {
     lastHeapReport = millis();
     
-    Vwire.virtualWrite(V2, Vwire.getFreeHeap());
-    Vwire.virtualWrite(V3, Vwire.getUptime());
+    Vwire.virtualSend(V2, Vwire.getFreeHeap());
+    Vwire.virtualSend(V3, Vwire.getUptime());
     
     Serial.printf("Status: Heap=%u bytes, Uptime=%u sec, RSSI=%d dBm\n",
                   Vwire.getFreeHeap(), Vwire.getUptime(), Vwire.getWiFiRSSI());

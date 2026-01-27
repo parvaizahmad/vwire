@@ -23,10 +23,10 @@ begin	KEYWORD2
 run	KEYWORD2
 connected	KEYWORD2
 disconnect	KEYWORD2
-virtualWrite	KEYWORD2
-virtualWritef	KEYWORD2
-virtualWriteArray	KEYWORD2
-onVirtualWrite	KEYWORD2
+virtualSend	KEYWORD2
+virtualSendf	KEYWORD2
+virtualSendArray	KEYWORD2
+onVirtualReceive	KEYWORD2
 onConnect	KEYWORD2
 onDisconnect	KEYWORD2
 onMessage	KEYWORD2
@@ -102,7 +102,7 @@ VWIRE_VERSION	LITERAL1
 # Macros (KEYWORD3)
 #######################################
 
-VWIRE_WRITE	KEYWORD3
+VWIRE_RECEIVE	KEYWORD3
 VWIRE_READ	KEYWORD3
 VWIRE_CONNECTED	KEYWORD3
 VWIRE_DISCONNECTED	KEYWORD3

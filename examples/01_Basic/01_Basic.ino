@@ -8,7 +8,7 @@
  * - Connecting to Vwire IOT platform via MQTTS (TLS)
  * - Sending sensor data to dashboard
  * - Receiving button press from dashboard
- * - LED control using VWIRE_WRITE()
+ * - LED control using VWIRE_RECEIVE()
  * 
  * Dashboard Setup:
  * - V0: Button widget (controls LED)
@@ -66,8 +66,8 @@ const unsigned long SEND_INTERVAL = 2000;  // Send data every 2 seconds
 // =============================================================================
 
 // V0 - Button widget handler
-// Automatically registered - no need to call Vwire.onVirtualWrite()!
-VWIRE_WRITE(V0) {
+// Automatically registered - no need to call Vwire.onVirtualReceive()!
+VWIRE_RECEIVE(V0) {
   ledState = param.asBool();
   digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
   
@@ -123,7 +123,7 @@ void setup() {
   Vwire.setTransport(TRANSPORT);
   
   // No need to register handlers manually!
-  // VWIRE_WRITE(V0), VWIRE_CONNECTED(), VWIRE_DISCONNECTED() 
+  // VWIRE_RECEIVE(V0), VWIRE_CONNECTED(), VWIRE_DISCONNECTED() 
   // are auto-registered at startup.
   
   // Connect to WiFi and Vwire
@@ -155,8 +155,8 @@ void loop() {
     counter++;
     
     // Send to dashboard
-    Vwire.virtualWrite(V1, temperature);  // V1 = Temperature gauge
-    Vwire.virtualWrite(V2, counter);      // V2 = Counter display
+    Vwire.virtualSend(V1, temperature);  // V1 = Temperature gauge
+    Vwire.virtualSend(V2, counter);      // V2 = Counter display
     
     // Print to serial
     Serial.printf("Sent: Temp=%.1f°C, Counter=%d\n", temperature, counter);
