@@ -10,11 +10,26 @@ Connect your microcontrollers to **Vwire IOT** cloud platform via secure MQTT.
 
 ---
 
+## ⚡ Quick API Reference
+
+| Function | Direction | Description |
+|----------|:---------:|-------------|
+| `Vwire.virtualSend(pin, value)` | Device → Cloud | Send data to dashboard |
+| `VWIRE_RECEIVE(pin) { }` | Cloud → Device | Handle incoming data |
+| `VWIRE_CONNECTED() { }` | - | Called when connected |
+| `VWIRE_DISCONNECTED() { }` | - | Called when disconnected |
+| `Vwire.config(AUTH_TOKEN)` | - | Configure with default server |
+| `Vwire.begin(SSID, PASS)` | - | Connect to WiFi & cloud |
+| `Vwire.run()` | - | Process messages (call in loop) |
+
+---
+
 ## 🌟 Features
 
 - 🔐 **Secure Connections**: MQTT over TLS/SSL encryption (port 8883) - **Recommended**
-- 📡 **Standard MQTT**: Plain TCP support (port 1883) for local networks
-- 📊 **Virtual Pins**: Bidirectional data exchange with dashboard (128 pins)
+- 📡 **Standard MQTT**: Plain TCP support (port 1883) for boards without SSL
+- 📊 **Virtual Pins**: Bidirectional data exchange with dashboard (256 pins)
+- ⏱️ **VwireTimer**: Non-blocking timers for all Arduino boards
 - 🔔 **Notifications**: Push notifications and email alerts
 - 🔄 **OTA Updates**: Over-the-air firmware updates (ESP32/ESP8266)
 - ⚡ **Auto Reconnect**: Automatic connection recovery with configurable intervals
@@ -60,17 +75,18 @@ const char* WIFI_PASS = "YOUR_PASSWORD";
 // Vwire IOT Authentication
 const char* AUTH_TOKEN = "YOUR_AUTH_TOKEN";
 
-// MQTT Broker Configuration (Vwire Cloud)
-const char* MQTT_SERVER = "mqtt.vwire.io";
-const uint16_t MQTT_PORT = 8883;  // TLS port (recommended)
+// Transport Configuration (optional - TLS is default)
+// VWIRE_TRANSPORT_TCP_SSL (port 8883) - Encrypted, RECOMMENDED
+// VWIRE_TRANSPORT_TCP     (port 1883) - Plain TCP, for boards without SSL
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // ===== HANDLERS (auto-registered!) =====
 
-// Called when dashboard writes to V0 (e.g., button press)
+// Called when cloud sends data to V0 (e.g., button press)
 VWIRE_RECEIVE(V0) {
   int value = param.asInt();  // 'param' is the VirtualPin
   digitalWrite(LED_BUILTIN, value);
-  Serial.printf("V0 = %d\n", value);
+  Serial.printf("V0 received: %d\n", value);
 }
 
 // Called when connected to server
@@ -89,9 +105,9 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
   
-  // Configure Vwire with secure TLS connection
-  Vwire.config(AUTH_TOKEN, MQTT_SERVER, MQTT_PORT);
-  Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);  // TLS encryption
+  // Configure Vwire (uses default server: mqtt.vwire.io)
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   Vwire.setDebug(true);
   
   // Connect - handlers are auto-registered by macros!
@@ -122,13 +138,22 @@ void loop() {
 | Transport | Constant | Port | Encryption | Recommendation |
 |-----------|----------|:----:|:----------:|----------------|
 | **MQTTS (TLS)** | `VWIRE_TRANSPORT_TCP_SSL` | 8883 | ✅ Encrypted | ✅ **RECOMMENDED** |
-| MQTT (TCP) | `VWIRE_TRANSPORT_TCP` | 1883 | ❌ Plain | Local networks only |
+| MQTT (TCP) | `VWIRE_TRANSPORT_TCP` | 1883 | ❌ Plain | For boards without SSL support |
 
-### Vwire IOT Cloud
+### Vwire IOT Cloud (Default)
 
 ```cpp
-Vwire.config(AUTH_TOKEN, "mqtt.vwire.io", 8883);
+// Simplest configuration - uses mqtt.vwire.io with TLS
+Vwire.config(AUTH_TOKEN);
 Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
+```
+
+### For Boards Without SSL Support
+
+```cpp
+// Use plain TCP (port 1883) for boards that don't support TLS
+Vwire.config(AUTH_TOKEN);
+Vwire.setTransport(VWIRE_TRANSPORT_TCP);
 ```
 
 > 🌐 Sign up for free at [https://vwireiot.com](https://vwireiot.com) to get your AUTH_TOKEN
@@ -140,17 +165,17 @@ Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
 ### Configuration Functions
 
 #### `Vwire.config(authToken)`
-Configure with default server (mqtt.vwire.io:8883).
+Configure with default server (mqtt.vwire.io). **Recommended for most users.**
 
 ```cpp
 Vwire.config("your-auth-token-here");
 ```
 
 #### `Vwire.config(authToken, server, port)`
-Configure with custom MQTT server.
+Configure with custom MQTT server (for advanced/self-hosted setups).
 
 ```cpp
-Vwire.config("your-token", "mqtt.vwire.io", 8883);
+Vwire.config("your-token", "custom-server.com", 8883);
 ```
 
 #### `Vwire.config(settings)`
@@ -301,8 +326,8 @@ void onDeliveryResult(const char* msgId, bool success) {
 void setup() {
   Serial.begin(115200);
   
-  // Configure Vwire
-  Vwire.config(AUTH_TOKEN, "mqtt.vwire.io", 8883);
+  // Configure Vwire (uses default server: mqtt.vwire.io)
+  Vwire.config(AUTH_TOKEN);
   Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
   Vwire.setDebug(true);
   
@@ -402,10 +427,14 @@ Vwire.disconnect();
 
 ### Virtual Pin Operations
 
-Virtual pins (V0-V127) are used for bidirectional communication with the dashboard.
+Virtual pins (V0-V255) enable bidirectional communication between your device and the cloud dashboard.
+
+**Data Flow:**
+- `virtualSend()` - Device → Cloud (send sensor data to dashboard)
+- `VWIRE_RECEIVE()` - Cloud → Device (receive commands from dashboard)
 
 #### `Vwire.virtualSend(pin, value)`
-Write a value to a virtual pin. Supports all data types.
+Send a value to a virtual pin (device → cloud). Supports all data types.
 
 ```cpp
 // Integer
@@ -467,15 +496,15 @@ Vwire.syncAll();
 
 The library supports **Auto-registration** - handlers are automatically registered at startup using macros. No need to manually call `onVirtualReceive()` in setup()!
 
-#### `VWIRE_RECEIVE(Vpin)` - Handle Virtual Pin Writes
+#### `VWIRE_RECEIVE(Vpin)` - Handle Incoming Data from Cloud
 
-Define a handler that's **automatically called** when the dashboard writes to a virtual pin.
+Define a handler that's **automatically called** when the cloud/dashboard sends data to your device.
 
 ```cpp
 // Automatically registered - no setup() code needed!
 VWIRE_RECEIVE(V0) {
   int value = param.asInt();    // 'param' is the VirtualPin& parameter
-  Serial.printf("V0 received: %d\n", value);
+  Serial.printf("V0 received from cloud: %d\n", value);
   digitalWrite(LED_PIN, value);
 }
 
@@ -510,10 +539,18 @@ VWIRE_DISCONNECTED() {
 }
 ```
 
-#### Complete Example (New Style)
+#### Complete Example (Recommended Style)
 
 ```cpp
 #include <Vwire.h>
+
+// Configuration
+const char* WIFI_SSID = "YOUR_WIFI";
+const char* WIFI_PASS = "YOUR_PASSWORD";
+const char* AUTH_TOKEN = "YOUR_AUTH_TOKEN";
+
+#define LED_PIN 2
+#define SENSOR_PIN 34
 
 // Handlers are automatically registered - just define them!
 VWIRE_RECEIVE(V0) {
@@ -536,19 +573,24 @@ VWIRE_DISCONNECTED() {
 }
 
 void setup() {
+  Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
   
-  Vwire.config(AUTH_TOKEN, MQTT_SERVER, MQTT_PORT);
+  // Simple configuration - uses default cloud server
+  Vwire.config(AUTH_TOKEN);
   Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
   
   // No need to register handlers - macros do it automatically!
-  Vwire.begin(WIFI_SSID, WIFI_PASSWORD);
+  Vwire.begin(WIFI_SSID, WIFI_PASS);
 }
 
 void loop() {
   Vwire.run();
   
-  if (Vwire.connected()) {
+  // Send sensor data to cloud
+  static unsigned long lastSend = 0;
+  if (Vwire.connected() && millis() - lastSend > 2000) {
+    lastSend = millis();
     Vwire.virtualSend(V2, analogRead(SENSOR_PIN));
   }
 }
@@ -566,12 +608,12 @@ Vwire.sync(V0, V1, V2);               // Sync multiple pins
 
 ---
 
-### Manual Handler Registration (Legacy)
+### Manual Handler Registration (Alternative)
 
-You can still use manual registration if preferred:
+You can also use manual registration if you prefer function-based handlers over macros:
 
 #### `Vwire.onVirtualReceive(pin, handler)`
-Manually register handler for incoming virtual pin data.
+Manually register handler for incoming data from cloud.
 
 ```cpp
 void onButtonPress(VirtualPin& pin) {
@@ -662,6 +704,89 @@ void handleRGB(VirtualPin& pin) {
   String first = pin.getArrayElement(0);  // "255"
 }
 ```
+
+---
+
+### VwireTimer Class
+
+The `VwireTimer` class provides non-blocking timer functionality, similar to BlynkTimer. It uses `millis()` internally and works on **all Arduino boards** (not just ESP).
+
+#### Basic Usage
+
+```cpp
+#include <Vwire.h>
+
+VwireTimer timer;
+
+void sendSensorData() {
+  Vwire.virtualSend(V0, analogRead(A0));
+}
+
+void blinkLED() {
+  static bool state = false;
+  state = !state;
+  digitalWrite(LED_BUILTIN, state);
+}
+
+void setup() {
+  // Call sendSensorData every 2 seconds
+  timer.setInterval(2000, sendSensorData);
+  
+  // Blink LED every 500ms
+  timer.setInterval(500, blinkLED);
+  
+  Vwire.config(AUTH_TOKEN);
+  Vwire.begin(WIFI_SSID, WIFI_PASS);
+}
+
+void loop() {
+  Vwire.run();
+  timer.run();  // Must call in loop!
+}
+```
+
+#### Timer Methods
+
+| Method | Description |
+|--------|-------------|
+| `setInterval(ms, callback)` | Repeat callback every `ms` milliseconds |
+| `setTimeout(ms, callback)` | Call callback once after `ms` milliseconds |
+| `setTimer(ms, callback, count)` | Call callback `count` times |
+| `enable(id)` | Enable a timer by ID |
+| `disable(id)` | Disable a timer by ID |
+| `toggle(id)` | Toggle timer enabled/disabled |
+| `isEnabled(id)` | Check if timer is enabled |
+| `deleteTimer(id)` | Remove a timer |
+| `run()` | Process timers (call in loop) |
+
+#### Example with Timer Control
+
+```cpp
+VwireTimer timer;
+int sensorTimerId;
+
+void setup() {
+  // setInterval returns timer ID for later control
+  sensorTimerId = timer.setInterval(1000, readSensor);
+}
+
+VWIRE_RECEIVE(V0) {
+  // Toggle sensor reading on/off from dashboard
+  if (param.asBool()) {
+    timer.enable(sensorTimerId);
+  } else {
+    timer.disable(sensorTimerId);
+  }
+}
+```
+
+#### Timer Slots
+
+| Platform | Max Timers |
+|----------|:----------:|
+| ESP32, ESP8266 | 16 |
+| AVR (Uno, Mega) | 8 |
+| Other | 16 |
 
 ---
 
@@ -852,11 +977,12 @@ Handlers: 3
 | [03_ESP8266_Complete](examples/03_ESP8266_Complete) | ESP8266 with LittleFS storage |
 | [04_DHT_SensorStation](examples/04_DHT_SensorStation) | Temperature monitoring with alerts |
 | [05_Relay_Control](examples/05_Relay_Control) | Multi-relay control with buttons |
+| [06_Timer](examples/06_Timer) | **VwireTimer** - Non-blocking timers |
 | [07_RGB_LED_Strip](examples/07_RGB_LED_Strip) | NeoPixel/WS2812B with effects |
 | [08_Motor_Servo](examples/08_Motor_Servo) | DC motor and servo control |
 | [10_Minimal](examples/10_Minimal) | Simplest possible example |
 | [11_MQTTS_Secure](examples/11_MQTTS_Secure) | Secure TLS connection example |
-| [12_ReliableDelivery](examples/12_ReliableDelivery) | **NEW** Guaranteed delivery with ACK |
+| [12_ReliableDelivery](examples/12_ReliableDelivery) | Guaranteed delivery with ACK |
 
 ---
 
@@ -896,7 +1022,7 @@ void setup() {
 | **MQTT connection fails** | Wrong server/port | Verify server address and port |
 | **TLS handshake fails** | Certificate issues | Use `VWIRE_TRANSPORT_TCP` for testing |
 | **Frequent disconnects** | Weak WiFi signal | Check RSSI with `getWiFiRSSI()` |
-| **Data not received** | Handler not registered | Call `onVirtualReceive()` before `begin()` |
+| **Data not received** | Handler not defined | Define `VWIRE_RECEIVE(Vx)` handler |
 | **ESP8266 crashes** | Low memory | Reduce buffer sizes, check `getFreeHeap()` |
 
 ### Memory Usage Tips (ESP8266)
