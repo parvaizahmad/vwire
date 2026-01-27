@@ -36,11 +36,11 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 
 // =============================================================================
-// MQTT BROKER CONFIGURATION
+// TRANSPORT CONFIGURATION
 // =============================================================================
-const char* MQTT_BROKER   = "mqtt.vwire.io";
-const uint16_t MQTT_PORT  = 8883;
-const VwireTransport MQTT_TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
+// VWIRE_TRANSPORT_TCP_SSL (port 8883) - Encrypted, RECOMMENDED
+// VWIRE_TRANSPORT_TCP     (port 1883) - Plain TCP, use if SSL not supported
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // =============================================================================
 // PIN DEFINITIONS
@@ -230,8 +230,8 @@ void setup() {
   // CONNECT TO VWIRE IOT
   // =========================================================================
   Vwire.setDebug(true);
-  Vwire.config(AUTH_TOKEN, MQTT_BROKER, MQTT_PORT);
-  Vwire.setTransport(MQTT_TRANSPORT);
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   
   Serial.println("Connecting to WiFi and Vwire IOT...");
   Vwire.begin(WIFI_SSID, WIFI_PASSWORD);

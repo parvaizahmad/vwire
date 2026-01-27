@@ -57,9 +57,9 @@ const char* WIFI_SSID     = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 
-// MQTT Configuration (Vwire Cloud)
-const char* MQTT_SERVER   = "mqtt.vwire.io";
-const uint16_t MQTT_PORT  = 8883;  // TLS port
+// Transport: Use TCP_SSL (port 8883) for TLS encryption (recommended)
+//            Use TCP (port 1883) for boards without SSL support
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // =============================================================================
 // RELIABLE DELIVERY SETTINGS
@@ -175,8 +175,8 @@ void setup() {
   // -----------------------------------------
   // Step 1: Configure Vwire connection
   // -----------------------------------------
-  Vwire.config(AUTH_TOKEN, MQTT_SERVER, MQTT_PORT);
-  Vwire.setTransport(VWIRE_TRANSPORT_TCP_SSL);
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   Vwire.setDebug(true);  // Enable debug output
   
   // -----------------------------------------

@@ -43,18 +43,11 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 
 // =============================================================================
-// MQTT BROKER CONFIGURATION
+// TRANSPORT CONFIGURATION
 // =============================================================================
-// For Vwire IOT Cloud (default), leave these as-is
-// For self-hosted server, update with your server details
-
-const char* MQTT_BROKER   = "mqtt.vwire.io";  // MQTT broker hostname or IP address
-const uint16_t MQTT_PORT  = 8883;                 // MQTT port (8883=TLS recommended, 1883=plain TCP)
-
-// Transport protocol options (RECOMMENDED for ESP8266):
-// - VWIRE_TRANSPORT_TCP           (port 1883) - Plain TCP, good for LAN
-// - VWIRE_TRANSPORT_TCP_SSL       (port 8883) - TLS encrypted ✓ RECOMMENDED
-const VwireTransport MQTT_TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
+// VWIRE_TRANSPORT_TCP_SSL (port 8883) - Encrypted, RECOMMENDED for ESP8266
+// VWIRE_TRANSPORT_TCP     (port 1883) - Plain TCP, use if SSL not supported
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // =============================================================================
 // PIN DEFINITIONS (NodeMCU mapping)
@@ -243,11 +236,11 @@ void setup() {
   analogWriteFreq(1000);   // Set PWM frequency
   updateLED();
   
-  // Configure Vwire with MQTT broker settings
+  // Configure Vwire (uses default server: mqtt.vwire.io)
   // No need to register handlers - VWIRE_WRITE() macros auto-register!
   Vwire.setDebug(true);
-  Vwire.config(AUTH_TOKEN, MQTT_BROKER, MQTT_PORT);
-  Vwire.setTransport(MQTT_TRANSPORT);
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   
   // Enable OTA updates
   Vwire.enableOTA("vwire-esp8266");

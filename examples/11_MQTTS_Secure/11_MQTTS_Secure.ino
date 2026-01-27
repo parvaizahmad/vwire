@@ -29,9 +29,9 @@
 #define WIFI_SSID     "your_wifi_ssid"
 #define WIFI_PASSWORD "your_wifi_password"
 #define AUTH_TOKEN    "your_device_auth_token"
-#define SERVER        "mqtt.vwire.io"
 
 // Transport: VWIRE_TRANSPORT_TCP_SSL (port 8883) - TLS encrypted ✅ RECOMMENDED
+//           VWIRE_TRANSPORT_TCP     (port 1883) - Plain (for boards without SSL)
 #define TRANSPORT     VWIRE_TRANSPORT_TCP_SSL
 
 // ============================================================================
@@ -71,7 +71,7 @@ VWIRE_WRITE(V0) {
 VWIRE_CONNECTED() {
   Serial.println("✓ Connected to Vwire IOT!");
   Serial.printf("  Transport: MQTTS (TLS)\n");
-  Serial.printf("  Server: %s:8883\n", SERVER);
+  Serial.printf("  Server: mqtt.vwire.io:8883\n");
   Serial.printf("  Free heap: %d bytes\n", Vwire.getFreeHeap());
   
   // Sync current LED state to dashboard
@@ -108,8 +108,8 @@ void setup() {
   digitalWrite(LED_PIN, LOW);
   #endif
   
-  // Configure Vwire
-  Vwire.config(AUTH_TOKEN, SERVER, 8883);  // Port 8883 for MQTTS
+  // Configure Vwire (uses default server mqtt.vwire.io)
+  Vwire.config(AUTH_TOKEN);  // Uses default server and port
   Vwire.setTransport(TRANSPORT);
   Vwire.setDebug(true);
   

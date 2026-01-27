@@ -43,18 +43,12 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 
 // =============================================================================
-// MQTT BROKER CONFIGURATION
+// TRANSPORT CONFIGURATION
 // =============================================================================
-// For Vwire IOT Cloud (default), leave these as-is
-// For self-hosted server, update with your server details
-
-const char* MQTT_BROKER   = "mqtt.vwire.io";  // MQTT broker hostname or IP address
-const uint16_t MQTT_PORT  = 8883;                 // MQTT port (8883=TLS recommended, 1883=plain TCP)
-
 // Transport protocol options:
-// - VWIRE_TRANSPORT_TCP           (port 1883) - Plain MQTT, good for LAN
-// - VWIRE_TRANSPORT_TCP_SSL       (port 8883) - MQTT over TLS/SSL - RECOMMENDED
-const VwireTransport MQTT_TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
+// - VWIRE_TRANSPORT_TCP_SSL (port 8883) - MQTT over TLS/SSL - RECOMMENDED
+// - VWIRE_TRANSPORT_TCP     (port 1883) - Plain MQTT (for boards without SSL support)
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // =============================================================================
 // PIN DEFINITIONS
@@ -338,10 +332,10 @@ void setup() {
   setupServos();
   Serial.println("Servos initialized");
   
-  // Configure Vwire with MQTT broker settings
+  // Configure Vwire (uses default server: mqtt.vwire.io)
   Vwire.setDebug(true);
-  Vwire.config(AUTH_TOKEN, MQTT_BROKER, MQTT_PORT);
-  Vwire.setTransport(MQTT_TRANSPORT);
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   
   // Connect (handlers auto-registered via VWIRE_WRITE macros)
   Vwire.begin(WIFI_SSID, WIFI_PASSWORD);
