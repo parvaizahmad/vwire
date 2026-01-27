@@ -8,7 +8,7 @@
  * - Connecting to Vwire IOT platform via MQTTS (TLS)
  * - Sending sensor data to dashboard
  * - Receiving button press from dashboard
- * - LED control using VWIRE_WRITE()
+ * - LED control using VWIRE_RECEIVE()
  * 
  * Dashboard Setup:
  * - V0: Button widget (controls LED)
@@ -40,16 +40,11 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 
 // =============================================================================
-// MQTT BROKER CONFIGURATION
+// TRANSPORT CONFIGURATION
 // =============================================================================
-// For Vwire IOT Cloud (default), use these settings:
-const char* MQTT_SERVER   = "mqtt.vwire.io";
-const uint16_t MQTT_PORT  = 8883;  // TLS port (RECOMMENDED)
-
-// Transport protocol options:
-// - VWIRE_TRANSPORT_TCP_SSL  (port 8883) - TLS encrypted ✅ RECOMMENDED
-// - VWIRE_TRANSPORT_TCP      (port 1883) - Plain TCP (local networks only)
-const VwireTransport MQTT_TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
+// VWIRE_TRANSPORT_TCP_SSL (port 8883) - Encrypted, RECOMMENDED for most boards
+// VWIRE_TRANSPORT_TCP     (port 1883) - Plain TCP, use if board doesn't support SSL
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // =============================================================================
 // PIN DEFINITIONS
@@ -71,8 +66,8 @@ const unsigned long SEND_INTERVAL = 2000;  // Send data every 2 seconds
 // =============================================================================
 
 // V0 - Button widget handler
-// Automatically registered - no need to call Vwire.onVirtualWrite()!
-VWIRE_WRITE(V0) {
+// Automatically registered - no need to call Vwire.onVirtualReceive()!
+VWIRE_RECEIVE(V0) {
   ledState = param.asBool();
   digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
   
@@ -123,12 +118,12 @@ void setup() {
   // Enable debug output
   Vwire.setDebug(true);
   
-  // Configure Vwire with MQTT broker settings
-  Vwire.config(AUTH_TOKEN, MQTT_SERVER, MQTT_PORT);
-  Vwire.setTransport(MQTT_TRANSPORT);
+  // Configure Vwire (uses default server: mqtt.vwire.io)
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   
   // No need to register handlers manually!
-  // VWIRE_WRITE(V0), VWIRE_CONNECTED(), VWIRE_DISCONNECTED() 
+  // VWIRE_RECEIVE(V0), VWIRE_CONNECTED(), VWIRE_DISCONNECTED() 
   // are auto-registered at startup.
   
   // Connect to WiFi and Vwire
@@ -160,8 +155,8 @@ void loop() {
     counter++;
     
     // Send to dashboard
-    Vwire.virtualWrite(V1, temperature);  // V1 = Temperature gauge
-    Vwire.virtualWrite(V2, counter);      // V2 = Counter display
+    Vwire.virtualSend(V1, temperature);  // V1 = Temperature gauge
+    Vwire.virtualSend(V2, counter);      // V2 = Counter display
     
     // Print to serial
     Serial.printf("Sent: Temp=%.1f°C, Counter=%d\n", temperature, counter);

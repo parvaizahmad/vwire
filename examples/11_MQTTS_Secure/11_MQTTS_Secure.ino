@@ -29,9 +29,9 @@
 #define WIFI_SSID     "your_wifi_ssid"
 #define WIFI_PASSWORD "your_wifi_password"
 #define AUTH_TOKEN    "your_device_auth_token"
-#define SERVER        "mqtt.vwire.io"
 
 // Transport: VWIRE_TRANSPORT_TCP_SSL (port 8883) - TLS encrypted ✅ RECOMMENDED
+//           VWIRE_TRANSPORT_TCP     (port 1883) - Plain (for boards without SSL)
 #define TRANSPORT     VWIRE_TRANSPORT_TCP_SSL
 
 // ============================================================================
@@ -57,7 +57,7 @@ bool ledState = false;
 // ============================================================================
 
 // Called when dashboard sends a value to V0 (LED)
-VWIRE_WRITE(V0) {
+VWIRE_RECEIVE(V0) {
   ledState = param.asBool();
   #if defined(ESP8266)
   digitalWrite(LED_PIN, ledState ? LOW : HIGH);  // Active LOW on ESP8266
@@ -71,11 +71,11 @@ VWIRE_WRITE(V0) {
 VWIRE_CONNECTED() {
   Serial.println("✓ Connected to Vwire IOT!");
   Serial.printf("  Transport: MQTTS (TLS)\n");
-  Serial.printf("  Server: %s:8883\n", SERVER);
+  Serial.printf("  Server: mqtt.vwire.io:8883\n");
   Serial.printf("  Free heap: %d bytes\n", Vwire.getFreeHeap());
   
   // Sync current LED state to dashboard
-  Vwire.virtualWrite(V0, ledState);
+  Vwire.virtualSend(V0, ledState);
 }
 
 // Called when Vwire disconnects
@@ -108,12 +108,12 @@ void setup() {
   digitalWrite(LED_PIN, LOW);
   #endif
   
-  // Configure Vwire
-  Vwire.config(AUTH_TOKEN, SERVER, 8883);  // Port 8883 for MQTTS
+  // Configure Vwire (uses default server mqtt.vwire.io)
+  Vwire.config(AUTH_TOKEN);  // Uses default server and port
   Vwire.setTransport(TRANSPORT);
   Vwire.setDebug(true);
   
-  // Note: VWIRE_WRITE, VWIRE_CONNECTED, VWIRE_DISCONNECTED macros auto-register!
+  // Note: VWIRE_RECEIVE, VWIRE_CONNECTED, VWIRE_DISCONNECTED macros auto-register!
   
   // Connect to WiFi and MQTT broker
   Serial.println("Connecting...");
@@ -141,10 +141,10 @@ void loop() {
     
     if (buttonState == LOW) {  // Button pressed
       Serial.println("Button pressed!");
-      Vwire.virtualWrite(V1, 1);
+      Vwire.virtualSend(V1, 1);
       Vwire.notify("Button pressed on device!");
     } else {
-      Vwire.virtualWrite(V1, 0);
+      Vwire.virtualSend(V1, 0);
     }
   }
   
@@ -152,8 +152,8 @@ void loop() {
   if (Vwire.connected() && millis() - lastHeapReport > 30000) {
     lastHeapReport = millis();
     
-    Vwire.virtualWrite(V2, Vwire.getFreeHeap());
-    Vwire.virtualWrite(V3, Vwire.getUptime());
+    Vwire.virtualSend(V2, Vwire.getFreeHeap());
+    Vwire.virtualSend(V3, Vwire.getUptime());
     
     Serial.printf("Status: Heap=%u bytes, Uptime=%u sec, RSSI=%d dBm\n",
                   Vwire.getFreeHeap(), Vwire.getUptime(), Vwire.getWiFiRSSI());

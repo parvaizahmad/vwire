@@ -41,18 +41,11 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 
 // =============================================================================
-// MQTT BROKER CONFIGURATION
+// TRANSPORT CONFIGURATION
 // =============================================================================
-// For Vwire IOT Cloud (default), leave these as-is
-// For self-hosted server, update with your server details
-
-const char* MQTT_BROKER   = "mqtt.vwire.io";  // MQTT broker hostname or IP address
-const uint16_t MQTT_PORT  = 8883;                 // MQTT port (8883=TLS recommended, 1883=plain TCP)
-
-// Transport protocol options:
-// - VWIRE_TRANSPORT_TCP           (port 1883) - Plain MQTT, good for LAN
-// - VWIRE_TRANSPORT_TCP_SSL       (port 8883) - MQTT over TLS/SSL - RECOMMENDED
-const VwireTransport MQTT_TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
+// VWIRE_TRANSPORT_TCP_SSL (port 8883) - Encrypted, RECOMMENDED
+// VWIRE_TRANSPORT_TCP     (port 1883) - Plain TCP, use if SSL not supported
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // =============================================================================
 // DHT SENSOR CONFIG
@@ -143,10 +136,10 @@ void checkAlerts() {
       Vwire.notify(msg);
       
       // Log to terminal
-      Vwire.virtualWrite(V7, msg);
+      Vwire.virtualSend(V7, msg);
       
       // Turn on alert LED
-      Vwire.virtualWrite(V6, 1);
+      Vwire.virtualSend(V6, 1);
       digitalWrite(LED_BUILTIN, HIGH);
       
       Serial.println(msg);
@@ -156,9 +149,9 @@ void checkAlerts() {
     
     if (consecutiveAlerts == 0 && alertActive) {
       alertActive = false;
-      Vwire.virtualWrite(V6, 0);
+      Vwire.virtualSend(V6, 0);
       digitalWrite(LED_BUILTIN, LOW);
-      Vwire.virtualWrite(V7, "Temperature returned to normal");
+      Vwire.virtualSend(V7, "Temperature returned to normal");
       Serial.println("Alert cleared");
     }
   }
@@ -166,13 +159,13 @@ void checkAlerts() {
 
 void sendSensorData() {
   // Send current values
-  Vwire.virtualWrite(V0, temperature);
-  Vwire.virtualWrite(V1, humidity);
-  Vwire.virtualWrite(V2, heatIndex);
+  Vwire.virtualSend(V0, temperature);
+  Vwire.virtualSend(V1, humidity);
+  Vwire.virtualSend(V2, heatIndex);
   
   // Send to graphs (SuperChart widget)
-  Vwire.virtualWrite(V3, temperature);
-  Vwire.virtualWrite(V4, humidity);
+  Vwire.virtualSend(V3, temperature);
+  Vwire.virtualSend(V4, humidity);
   
   Serial.printf("Sent: T=%.1fC, H=%.1f%%, HI=%.1fC\n",
                 temperature, humidity, heatIndex);
@@ -213,16 +206,16 @@ void sendDailySummary() {
 }
 
 // =============================================================================
-// VIRTUAL PIN HANDLERS (Auto-registered via VWIRE_WRITE macro)
+// VIRTUAL PIN HANDLERS (Auto-registered via VWIRE_RECEIVE macro)
 // =============================================================================
 
-// Threshold slider on V5 - auto-registered, no need for Vwire.onVirtualWrite()
-VWIRE_WRITE(V5) {
+// Threshold slider on V5 - auto-registered, no need for Vwire.onVirtualReceive()
+VWIRE_RECEIVE(V5) {
   tempAlertThreshold = param.asFloat();
   
   char msg[64];
   snprintf(msg, sizeof(msg), "Alert threshold set to %.1fC", tempAlertThreshold);
-  Vwire.virtualWrite(V7, msg);
+  Vwire.virtualSend(V7, msg);
   Serial.println(msg);
   
   // Re-check alerts with new threshold
@@ -237,14 +230,14 @@ VWIRE_CONNECTED() {
   Serial.println("Connected to Vwire IOT!");
   
   // Sync threshold setting
-  Vwire.virtualWrite(V5, tempAlertThreshold);
-  Vwire.virtualWrite(V6, alertActive ? 1 : 0);
+  Vwire.virtualSend(V5, tempAlertThreshold);
+  Vwire.virtualSend(V6, alertActive ? 1 : 0);
   
   // Log connection
   char msg[64];
   snprintf(msg, sizeof(msg), "Device connected - IP: %s", 
            WiFi.localIP().toString().c_str());
-  Vwire.virtualWrite(V7, msg);
+  Vwire.virtualSend(V7, msg);
   
   // Send initial reading
   if (readDHT()) {
@@ -276,10 +269,10 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
   
-  // Configure Vwire with MQTT broker settings
+  // Configure Vwire (uses default server: mqtt.vwire.io)
   Vwire.setDebug(true);
-  Vwire.config(AUTH_TOKEN, MQTT_BROKER, MQTT_PORT);
-  Vwire.setTransport(MQTT_TRANSPORT);
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   
   // ==========================================================================
   // OPTIONAL: Enable Reliable Delivery for critical sensor data
@@ -294,8 +287,8 @@ void setup() {
   // See example 12_ReliableDelivery for full details and delivery callbacks.
   // ==========================================================================
   
-  // Note: Handlers are auto-registered via VWIRE_WRITE(), VWIRE_CONNECTED(),
-  // and VWIRE_DISCONNECTED() macros - no need to call onVirtualWrite() etc.
+  // Note: Handlers are auto-registered via VWIRE_RECEIVE(), VWIRE_CONNECTED(),
+  // and VWIRE_DISCONNECTED() macros - no need to call onVirtualReceive() etc.
   
   // Connect
   Vwire.begin(WIFI_SSID, WIFI_PASSWORD);

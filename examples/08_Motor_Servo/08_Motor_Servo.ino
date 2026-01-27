@@ -43,18 +43,12 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 
 // =============================================================================
-// MQTT BROKER CONFIGURATION
+// TRANSPORT CONFIGURATION
 // =============================================================================
-// For Vwire IOT Cloud (default), leave these as-is
-// For self-hosted server, update with your server details
-
-const char* MQTT_BROKER   = "mqtt.vwire.io";  // MQTT broker hostname or IP address
-const uint16_t MQTT_PORT  = 8883;                 // MQTT port (8883=TLS recommended, 1883=plain TCP)
-
 // Transport protocol options:
-// - VWIRE_TRANSPORT_TCP           (port 1883) - Plain MQTT, good for LAN
-// - VWIRE_TRANSPORT_TCP_SSL       (port 8883) - MQTT over TLS/SSL - RECOMMENDED
-const VwireTransport MQTT_TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
+// - VWIRE_TRANSPORT_TCP_SSL (port 8883) - MQTT over TLS/SSL - RECOMMENDED
+// - VWIRE_TRANSPORT_TCP     (port 1883) - Plain MQTT (for boards without SSL support)
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // =============================================================================
 // PIN DEFINITIONS
@@ -257,15 +251,15 @@ void joystickToDifferential(int x, int y) {
 // VIRTUAL PIN HANDLERS
 // =============================================================================
 
-VWIRE_WRITE(V0) {
+VWIRE_RECEIVE(V0) {
   setMotorA(param.asInt());
 }
 
-VWIRE_WRITE(V1) {
+VWIRE_RECEIVE(V1) {
   setMotorB(param.asInt());
 }
 
-VWIRE_WRITE(V2) {
+VWIRE_RECEIVE(V2) {
   // Joystick sends X,Y as comma-separated values
   if (param.getArraySize() >= 2) {
     int x = param.getArrayItemInt(0);  // Left/Right
@@ -276,15 +270,15 @@ VWIRE_WRITE(V2) {
   }
 }
 
-VWIRE_WRITE(V3) {
+VWIRE_RECEIVE(V3) {
   setServo1(param.asInt());
 }
 
-VWIRE_WRITE(V4) {
+VWIRE_RECEIVE(V4) {
   setServo2(param.asInt());
 }
 
-VWIRE_WRITE(V5) {
+VWIRE_RECEIVE(V5) {
   emergencyStop = param.asBool();
   
   if (emergencyStop) {
@@ -304,11 +298,11 @@ VWIRE_CONNECTED() {
   Serial.println("Connected to Vwire IOT!");
   
   // Sync current state
-  Vwire.virtualWrite(V0, motorASpeed);
-  Vwire.virtualWrite(V1, motorBSpeed);
-  Vwire.virtualWrite(V3, servo1Angle);
-  Vwire.virtualWrite(V4, servo2Angle);
-  Vwire.virtualWrite(V5, emergencyStop);
+  Vwire.virtualSend(V0, motorASpeed);
+  Vwire.virtualSend(V1, motorBSpeed);
+  Vwire.virtualSend(V3, servo1Angle);
+  Vwire.virtualSend(V4, servo2Angle);
+  Vwire.virtualSend(V5, emergencyStop);
 }
 
 VWIRE_DISCONNECTED() {
@@ -338,12 +332,12 @@ void setup() {
   setupServos();
   Serial.println("Servos initialized");
   
-  // Configure Vwire with MQTT broker settings
+  // Configure Vwire (uses default server: mqtt.vwire.io)
   Vwire.setDebug(true);
-  Vwire.config(AUTH_TOKEN, MQTT_BROKER, MQTT_PORT);
-  Vwire.setTransport(MQTT_TRANSPORT);
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   
-  // Connect (handlers auto-registered via VWIRE_WRITE macros)
+  // Connect (handlers auto-registered via VWIRE_RECEIVE macros)
   Vwire.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 

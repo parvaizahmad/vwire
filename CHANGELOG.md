@@ -23,7 +23,7 @@ This is a major release with significant changes including a complete rebrand fr
 - **Vwire.h**: New main header file
 - **Vwire.cpp**: New main implementation file
 - **VwireConfig.h**: New configuration file with board detection
-- **New macros**: `VWIRE_WRITE()`, `VWIRE_READ()`, `VWIRE_CONNECTED()`, `VWIRE_DISCONNECTED()`
+- **New macros**: `VWIRE_RECEIVE()`, `VWIRE_READ()`, `VWIRE_CONNECTED()`, `VWIRE_DISCONNECTED()`
 - **New constants**: `VWIRE_TRANSPORT_TCP`, `VWIRE_TRANSPORT_TCP_SSL`
 - **New state enum**: `VwireState` with states like `VWIRE_STATE_CONNECTED`
 - **New error enum**: `VwireError` with codes like `VWIRE_ERR_MQTT_FAILED`

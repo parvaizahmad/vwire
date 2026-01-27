@@ -45,18 +45,11 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 
 // =============================================================================
-// MQTT BROKER CONFIGURATION
+// TRANSPORT CONFIGURATION
 // =============================================================================
-// For Vwire IOT Cloud (default), leave these as-is
-// For self-hosted server, update with your server details
-
-const char* MQTT_BROKER   = "mqtt.vwire.io";  // MQTT broker hostname or IP address
-const uint16_t MQTT_PORT  = 8883;                 // MQTT port (8883=TLS recommended, 1883=plain TCP)
-
-// Transport protocol options:
-// - VWIRE_TRANSPORT_TCP           (port 1883) - Plain MQTT, good for LAN
-// - VWIRE_TRANSPORT_TCP_SSL       (port 8883) - MQTT over TLS/SSL ✓ RECOMMENDED
-const VwireTransport MQTT_TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
+// VWIRE_TRANSPORT_TCP_SSL (port 8883) - Encrypted, RECOMMENDED
+// VWIRE_TRANSPORT_TCP     (port 1883) - Plain TCP, use if SSL not supported
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // =============================================================================
 // PIN DEFINITIONS
@@ -102,23 +95,23 @@ void loadSettings();
 // =============================================================================
 
 // V0 - LED On/Off button
-VWIRE_WRITE(V0) {
+VWIRE_RECEIVE(V0) {
   ledState = param.asBool();
   updateLED();
   saveSettings();
   
   // Log to terminal widget
-  Vwire.virtualWritef(V7, "LED %s", ledState ? "ON" : "OFF");
+  Vwire.virtualSendf(V7, "LED %s", ledState ? "ON" : "OFF");
   Serial.printf("LED: %s\n", ledState ? "ON" : "OFF");
 }
 
 // V1 - LED brightness slider (0-255)
-VWIRE_WRITE(V1) {
+VWIRE_RECEIVE(V1) {
   ledBrightness = param.asInt();
   updateLED();
   saveSettings();
   
-  Vwire.virtualWritef(V7, "Brightness: %d", ledBrightness);
+  Vwire.virtualSendf(V7, "Brightness: %d", ledBrightness);
   Serial.printf("Brightness: %d\n", ledBrightness);
 }
 
@@ -149,17 +142,17 @@ void readSensors() {
     // Toggle LED on touch
     ledState = !ledState;
     updateLED();
-    Vwire.virtualWrite(V0, ledState);
+    Vwire.virtualSend(V0, ledState);
   }
   lastTouchState = touched;
 }
 
 void sendSensorData() {
-  Vwire.virtualWrite(V2, temperature);        // Temperature
-  Vwire.virtualWrite(V3, humidity);           // Humidity
-  Vwire.virtualWrite(V4, touchRead(TOUCH_PIN)); // Touch value
-  Vwire.virtualWrite(V5, batteryVoltage);     // Battery voltage
-  Vwire.virtualWrite(V6, 1);                  // Online indicator
+  Vwire.virtualSend(V2, temperature);        // Temperature
+  Vwire.virtualSend(V3, humidity);           // Humidity
+  Vwire.virtualSend(V4, touchRead(TOUCH_PIN)); // Touch value
+  Vwire.virtualSend(V5, batteryVoltage);     // Battery voltage
+  Vwire.virtualSend(V6, 1);                  // Online indicator
   
   Serial.printf("Sent: T=%.1f°C H=%.1f%% Bat=%.2fV\n", 
                 temperature, humidity, batteryVoltage);
@@ -205,11 +198,11 @@ VWIRE_CONNECTED() {
   Vwire.sync(V0, V1);  // Sync LED state and brightness
   
   // Send online status
-  Vwire.virtualWrite(V6, 1);  // Online
+  Vwire.virtualSend(V6, 1);  // Online
   
   // Send startup log
-  Vwire.virtualWrite(V7, "ESP32 connected!");
-  Vwire.virtualWritef(V7, "Free heap: %d bytes", ESP.getFreeHeap());
+  Vwire.virtualSend(V7, "ESP32 connected!");
+  Vwire.virtualSendf(V7, "Free heap: %d bytes", ESP.getFreeHeap());
   
   Vwire.printDebugInfo();
 }
@@ -256,11 +249,11 @@ void setup() {
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
   
-  // Configure Vwire with MQTT broker settings
-  // No need to register handlers - VWIRE_WRITE() macros auto-register!
+  // Configure Vwire (uses default server: mqtt.vwire.io)
+  // No need to register handlers - VWIRE_RECEIVE() macros auto-register!
   Vwire.setDebug(true);
-  Vwire.config(AUTH_TOKEN, MQTT_BROKER, MQTT_PORT);
-  Vwire.setTransport(MQTT_TRANSPORT);
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   
   // Enable OTA updates
   Vwire.enableOTA("vwire-esp32");

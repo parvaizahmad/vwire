@@ -40,18 +40,11 @@ const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 const char* AUTH_TOKEN    = "YOUR_AUTH_TOKEN";
 
 // =============================================================================
-// MQTT BROKER CONFIGURATION
+// TRANSPORT CONFIGURATION
 // =============================================================================
-// For Vwire IOT Cloud (default), leave these as-is
-// For self-hosted server, update with your server details
-
-const char* MQTT_BROKER   = "mqtt.vwire.io";  // MQTT broker hostname or IP address
-const uint16_t MQTT_PORT  = 8883;                 // MQTT port (8883=TLS recommended, 1883=plain TCP)
-
-// Transport protocol options:
-// - VWIRE_TRANSPORT_TCP           (port 1883) - Plain MQTT, good for LAN
-// - VWIRE_TRANSPORT_TCP_SSL       (port 8883) - MQTT over TLS/SSL - RECOMMENDED
-const VwireTransport MQTT_TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
+// VWIRE_TRANSPORT_TCP_SSL (port 8883) - Encrypted, RECOMMENDED
+// VWIRE_TRANSPORT_TCP     (port 1883) - Plain TCP, use if SSL not supported
+const VwireTransport TRANSPORT = VWIRE_TRANSPORT_TCP_SSL;
 
 // =============================================================================
 // RELAY CONFIGURATION
@@ -103,10 +96,10 @@ void setRelay(int index, bool state) {
   digitalWrite(RELAY_PINS[index], state ? RELAY_ON : RELAY_OFF);
   
   // Update dashboard
-  Vwire.virtualWrite(index, state ? 1 : 0);
+  Vwire.virtualSend(index, state ? 1 : 0);
   
   // Update status LED (V7 + index)
-  Vwire.virtualWrite(7 + index, state ? 1 : 0);
+  Vwire.virtualSend(7 + index, state ? 1 : 0);
   
   Serial.printf("Relay %d (%s): %s\n", index + 1, RELAY_NAMES[index], 
                 state ? "ON" : "OFF");
@@ -130,10 +123,10 @@ int getActiveRelayCount() {
 
 void syncAllRelays() {
   for (int i = 0; i < NUM_RELAYS; i++) {
-    Vwire.virtualWrite(i, relayStates[i] ? 1 : 0);
-    Vwire.virtualWrite(V7 + i, relayStates[i] ? 1 : 0);
+    Vwire.virtualSend(i, relayStates[i] ? 1 : 0);
+    Vwire.virtualSend(V7 + i, relayStates[i] ? 1 : 0);
   }
-  Vwire.virtualWrite(V6, getActiveRelayCount());
+  Vwire.virtualSend(V6, getActiveRelayCount());
 }
 
 // =============================================================================
@@ -158,7 +151,7 @@ void checkButtons() {
         setRelay(i, !relayStates[i]);
         
         // Update active count
-        Vwire.virtualWrite(6, getActiveRelayCount());
+        Vwire.virtualSend(6, getActiveRelayCount());
       }
     }
     
@@ -171,23 +164,23 @@ void checkButtons() {
 // =============================================================================
 
 // Relay control handlers
-VWIRE_WRITE(V0) { setRelay(0, param.asBool()); Vwire.virtualWrite(V6, getActiveRelayCount()); }
-VWIRE_WRITE(V1) { setRelay(1, param.asBool()); Vwire.virtualWrite(V6, getActiveRelayCount()); }
-VWIRE_WRITE(V2) { setRelay(2, param.asBool()); Vwire.virtualWrite(V6, getActiveRelayCount()); }
-VWIRE_WRITE(V3) { setRelay(3, param.asBool()); Vwire.virtualWrite(V6, getActiveRelayCount()); }
+VWIRE_RECEIVE(V0) { setRelay(0, param.asBool()); Vwire.virtualSend(V6, getActiveRelayCount()); }
+VWIRE_RECEIVE(V1) { setRelay(1, param.asBool()); Vwire.virtualSend(V6, getActiveRelayCount()); }
+VWIRE_RECEIVE(V2) { setRelay(2, param.asBool()); Vwire.virtualSend(V6, getActiveRelayCount()); }
+VWIRE_RECEIVE(V3) { setRelay(3, param.asBool()); Vwire.virtualSend(V6, getActiveRelayCount()); }
 
 // All ON/OFF handlers
-VWIRE_WRITE(V4) {
+VWIRE_RECEIVE(V4) {
   if (param.asInt() == 1) {
     setAllRelays(true);
-    Vwire.virtualWrite(V6, NUM_RELAYS);
+    Vwire.virtualSend(V6, NUM_RELAYS);
   }
 }
 
-VWIRE_WRITE(V5) {
+VWIRE_RECEIVE(V5) {
   if (param.asInt() == 1) {
     setAllRelays(false);
-    Vwire.virtualWrite(V6, 0);
+    Vwire.virtualSend(V6, 0);
   }
 }
 
@@ -244,11 +237,11 @@ void setup() {
     }
   }
   
-  // Configure Vwire with MQTT broker settings
-  // No need to register handlers - VWIRE_WRITE() macros auto-register!
+  // Configure Vwire (uses default server: mqtt.vwire.io)
+  // No need to register handlers - VWIRE_RECEIVE() macros auto-register!
   Vwire.setDebug(true);
-  Vwire.config(AUTH_TOKEN, MQTT_BROKER, MQTT_PORT);
-  Vwire.setTransport(MQTT_TRANSPORT);
+  Vwire.config(AUTH_TOKEN);
+  Vwire.setTransport(TRANSPORT);
   
   // Connect
   Serial.println("\nConnecting...");
@@ -267,6 +260,6 @@ void loop() {
   // Periodic status update
   if (Vwire.connected() && millis() - lastStatusUpdate >= STATUS_INTERVAL) {
     lastStatusUpdate = millis();
-    Vwire.virtualWrite(V6, getActiveRelayCount());
+    Vwire.virtualSend(V6, getActiveRelayCount());
   }
 }
